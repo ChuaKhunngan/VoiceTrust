@@ -167,7 +167,31 @@ At this stage, the important thing is that:
 
 ---
 
-## 8. Understand the current trust rule
+## 8. Register the local voice-message convention in `TOOLS.md`
+
+After VoiceTrust is working, add a minimal local convention to your `TOOLS.md`.
+
+The intended rule is:
+- when a voice message arrives, do **STT**
+- also run **VoiceTrust**
+- merge both before replying
+
+Recommended minimal wording:
+
+```md
+## Incoming Voice Message
+- Do STT.
+- Also run VoiceTrust.
+- Merge both before replying.
+```
+
+Keep this section short.
+Do not put machine-specific paths into the skill itself.
+Put local behavior conventions in `TOOLS.md`.
+
+---
+
+## 9. Understand the current trust rule
 
 Current mainline formula:
 
@@ -187,7 +211,7 @@ Practical downgrades:
 
 ---
 
-## 9. How to use VoiceTrust in normal operation
+## 10. How to use VoiceTrust in normal operation
 
 Once setup is complete, the normal pattern is simple:
 
@@ -211,7 +235,7 @@ cd runtime
 
 ---
 
-## 10. Recommended operational habits
+## 11. Recommended operational habits
 
 - keep using the same `speaker_id` for the same owner
 - prefer a small curated owner sample set over random noisy clips
@@ -221,7 +245,7 @@ cd runtime
 
 ---
 
-## 11. When to revisit this quickstart
+## 12. When to revisit this quickstart
 
 Read this file again when:
 - setting up the package on a new machine
