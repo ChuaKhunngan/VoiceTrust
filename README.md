@@ -60,14 +60,11 @@ For normal OpenClaw usage, the intended path is to use the packaged skill from a
 
 ### Install from release package
 
-1. Download the VoiceTrust release archive
-2. Put the extracted `Skill-VoiceTrust/` folder into the appropriate OpenClaw skill directory
-3. Ensure the folder contains:
-   - `SKILL.md`
-   - `references/quickstart.md`
-   - `scripts/demo.py`
-   - `runtime/`
-4. After it is placed correctly, tell the agent to start using **VoiceTrust**
+1. Download the VoiceTrust release zip
+2. Extract it
+3. After extraction, you should get a `VoiceTrust/` folder
+4. Put that `VoiceTrust/` folder into the appropriate OpenClaw skill directory
+5. After it is placed correctly, tell the agent to start using **VoiceTrust**
 
 Practical example of what to tell the agent:
 - “Start using VoiceTrust for incoming voice messages.”
