@@ -248,20 +248,17 @@ separate from the full project repository.
 
 ## Acknowledgements and Upstream Credits
 
-VoiceTrust builds on open-source speaker verification work from the SpeechBrain ecosystem.
+VoiceTrust builds on open-source speaker verification components from the SpeechBrain ecosystem.
 
-This repository currently uses local copies of pretrained assets derived from:
+This project uses pretrained assets derived from:
 - **SpeechBrain** — https://github.com/speechbrain/speechbrain
-- **Model source referenced by the bundled assets** — `speechbrain/spkrec-ecapa-voxceleb`
+- **speechbrain/spkrec-ecapa-voxceleb** — upstream pretrained speaker-recognition model referenced by the bundled assets
 
-Attribution notes:
-- the included ECAPA-based weights and related asset files are not original VoiceTrust model training output
-- VoiceTrust uses them as upstream pretrained components inside a larger OpenClaw-oriented trust workflow
-- upstream copyright, license, and notice requirements for those components should be preserved when redistributing this project or its packaged skill bundle
+The included ECAPA-based weights and related files are upstream pretrained components, not original VoiceTrust model-training outputs.
 
-If this repository is redistributed in another form, keep:
-- the project’s own `LICENSE`
-- upstream license / notice information for bundled third-party model assets where required
+When redistributing this project or its packaged skill bundle, keep:
+- this repository’s own `LICENSE`
+- required upstream license / notice information for bundled third-party assets
 - clear attribution to SpeechBrain and the upstream pretrained model source
 
 ---
