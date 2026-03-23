@@ -19,6 +19,7 @@ Relevant paths in this package:
 - `runtime/`
 
 The actual VoiceTrust runtime lives under `runtime/`.
+The runtime bundle includes its own `src/` and local model assets under `runtime/assets/models/`, so it can be prepared independently.
 
 ---
 
@@ -62,7 +63,7 @@ uv pip install --python .venv/bin/python torchcodec
 Run a basic speaker listing command:
 
 ```bash
-./.venv/bin/python ../scripts/demo.py --list-speakers
+uv run --python .venv/bin/python ../scripts/demo.py --list-speakers
 ```
 
 If this is the first setup, it is normal to see that no enrolled speaker exists yet.
@@ -83,7 +84,7 @@ Recommended policy:
 For each sample, run:
 
 ```bash
-./.venv/bin/python ../scripts/demo.py \
+uv run --python .venv/bin/python ../scripts/demo.py \
   --audio /path/to/owner_sample_01.wav \
   --speaker owner \
   --enroll-sample \
@@ -93,13 +94,13 @@ For each sample, run:
 Then repeat with additional files:
 
 ```bash
-./.venv/bin/python ../scripts/demo.py \
+uv run --python .venv/bin/python ../scripts/demo.py \
   --audio /path/to/owner_sample_02.wav \
   --speaker owner \
   --enroll-sample \
   --json
 
-./.venv/bin/python ../scripts/demo.py \
+uv run --python .venv/bin/python ../scripts/demo.py \
   --audio /path/to/owner_sample_03.wav \
   --speaker owner \
   --enroll-sample \
@@ -125,7 +126,7 @@ data/owners/owner/
 After enrollment, confirm that the owner profile exists:
 
 ```bash
-./.venv/bin/python ../scripts/demo.py --list-speakers
+uv run --python .venv/bin/python ../scripts/demo.py --list-speakers
 ```
 
 Expected shape:
@@ -142,7 +143,7 @@ Owner profiles:
 Pick a voice sample that should match the enrolled owner and run:
 
 ```bash
-./.venv/bin/python ../scripts/demo.py \
+uv run --python .venv/bin/python ../scripts/demo.py \
   --audio /path/to/test_audio.wav \
   --speaker owner \
   --json
@@ -231,7 +232,7 @@ Typical VoiceTrust command shape during normal use:
 
 ```bash
 cd runtime
-./.venv/bin/python ../scripts/demo.py \
+uv run --python .venv/bin/python ../scripts/demo.py \
   --audio /path/to/incoming_audio.ogg \
   --speaker owner \
   --json
