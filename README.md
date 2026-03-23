@@ -5,17 +5,20 @@ VoiceTrust is the missing trust layer in OpenClaw voice-message handling.
 Most voice workflows stop at transcription: the system figures out **what was said**, but not **who likely said it**. VoiceTrust exists to close that gap. It sits on the path from incoming channel audio to final agent action, adding speaker verification and trust scoring before OpenClaw decides whether to reply, execute, or ask for confirmation.
 
 In practice, VoiceTrust helps OpenClaw treat voice messages more intelligently:
-- transcribe the content with STT
+- transcribe the content with any OpenClaw-compatible STT path
 - verify whether the speaker likely matches the enrolled owner
 - combine content + trust before taking action
 - block risky voice-command execution when trust is too low
+
+**VoiceTrust does not provide STT itself.**
+It is designed to work alongside whatever STT path OpenClaw is already using, and should remain compatible with any OpenClaw-supported transcription approach.
 
 This makes VoiceTrust especially valuable for assistant workflows where voice is not just content, but also an input surface for intent, control, and identity-sensitive automation.
 
 VoiceTrust is not presented as perfect biometric authentication.
 It is a practical, integration-first trust signal for real OpenClaw channel workflows.
 
-**Developed in collaboration with Jarvis, the OpenClaw-based AI partner behind this workflow, with additional support from CodeLeader.**
+**Developed in collaboration with Jarvis, the OpenClaw-based AI partner behind this workflow, with additional support from [CodeLeader](https://github.com/ChuaKhunngan/CodeLeader).**
 
 ---
 
@@ -76,6 +79,7 @@ In short:
 - **STT** answers: “What was said?”
 - **VoiceTrust** answers: “Who likely said it, and how confident are we?”
 - OpenClaw should use **both** before replying or acting on voice input.
+- VoiceTrust itself stays **STT-independent** and compatible with different OpenClaw transcription paths.
 
 ---
 
@@ -84,6 +88,11 @@ In short:
 VoiceTrust turns the flow above into a usable decision layer for voice messages.
 
 It does not try to replace STT, and it does not sit off to the side as an isolated model demo. Its job is to plug directly into the same path that starts with an incoming channel voice note and ends with an agent response or action.
+
+VoiceTrust is intentionally **STT-independent**:
+- it does **not** include its own speech-to-text system
+- it is meant to work with whatever STT stack OpenClaw is already using
+- it should remain compatible with different OpenClaw transcription backends and future routing changes
 
 In that flow, VoiceTrust is responsible for:
 - loading the enrolled owner profile
