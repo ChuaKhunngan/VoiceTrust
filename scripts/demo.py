@@ -40,8 +40,9 @@ except ImportError as e:
     SPEECHBRAIN_AVAILABLE = False
 
 
-# Default voiceprint storage
+# Default storage
 VOICEPRINT_DIR = Path(__file__).parent.parent / "data" / "voiceprints"
+OWNER_PROFILE_DIR = Path(__file__).parent.parent / "data" / "owners"
 
 
 def print_banner():
@@ -61,9 +62,7 @@ def print_result(result: TrustScore):
     print("-" * 60)
     print()
 
-    # Component scores
     print("Component Scores (0-100, higher = more trustworthy):")
-    print(f"  Deepfake Detection:    {result.deepfake_score:6.2f}")
     if result.speaker_match >= 0:
         print(f"  Speaker Verification:  {result.speaker_match:6.2f}")
     else:
@@ -72,28 +71,25 @@ def print_result(result: TrustScore):
     print(f"  Language Consistency:  {result.language_consistency:6.2f}")
     print()
 
-    # Overall trust
     trust_level = "HIGH" if result.overall_trust >= 70 else \
                   "MEDIUM" if result.overall_trust >= 40 else "LOW"
 
     print(f"Overall Trust Score: {result.overall_trust:.2f} ({trust_level})")
     print(f"Confidence: {result.confidence:.2f}")
+    print(f"Speech Duration: {result.speech_duration:.2f}s")
+    print(f"Speech Ratio: {result.speech_ratio:.3f}")
+    print(f"VAD Status: {result.vad_status}")
+    if result.detected_language is not None:
+        print(f"Detected Language: {result.detected_language} ({result.language_confidence:.2f})")
+    if result.failure_reason is not None:
+        print(f"Failure Reason: {result.failure_reason}")
     print()
 
-    # Verdict
     print("-" * 60)
-    if result.is_synthetic:
-        print("VERDICT: SYNTHETIC SPEECH DETECTED")
-        print(f"Spoof Probability: {result.spoof_probability * 100:.2f}%")
-    else:
-        print("VERDICT: BONAFIDE (Natural Speech)")
-        print(f"Synthetic Probability: {result.spoof_probability * 100:.2f}%")
-
     if result.speaker_id and result.speaker_match >= 0:
         match_status = "MATCH" if result.speaker_match >= 50 else "NO MATCH"
         print(f"Speaker Verification ({result.speaker_id}): {match_status}")
         print(f"  Similarity Score: {result.raw_speaker_score:.3f}")
-
     print("-" * 60)
     print()
 
@@ -138,11 +134,25 @@ def load_voiceprint(speaker_id: str, voiceprint_dir: Path = VOICEPRINT_DIR) -> n
     return None
 
 
-def list_enrolled_speakers(voiceprint_dir: Path = VOICEPRINT_DIR) -> list:
-    """List all enrolled speakers."""
-    if not voiceprint_dir.exists():
-        return []
-    return [f.stem for f in voiceprint_dir.glob("*.npy")]
+def list_enrolled_speakers(voiceprint_dir: Path = VOICEPRINT_DIR, owner_profile_dir: Path = OWNER_PROFILE_DIR) -> dict:
+    """List legacy voiceprints and owner profiles."""
+    legacy = []
+    if voiceprint_dir.exists():
+        legacy = [f.stem for f in voiceprint_dir.glob("*.npy")]
+
+    owners = []
+    if owner_profile_dir.exists():
+        for d in owner_profile_dir.iterdir():
+            if not d.is_dir():
+                continue
+            profile = d / "profile.json"
+            if profile.exists():
+                owners.append(d.name)
+
+    return {
+        "owner_profiles": sorted(owners),
+        "legacy_voiceprints": sorted(legacy),
+    }
 
 
 def main():
@@ -163,6 +173,11 @@ def main():
         "--enroll",
         action="store_true",
         help="Enroll speaker instead of verifying",
+    )
+    parser.add_argument(
+        "--enroll-sample",
+        action="store_true",
+        help="Append an enrollment sample to a multi-sample owner profile",
     )
     parser.add_argument(
         "--create-demo",
@@ -221,12 +236,19 @@ def main():
 
     # Handle list speakers
     if args.list_speakers:
-        speakers = list_enrolled_speakers()
-        if speakers:
-            print("Enrolled speakers:")
-            for s in speakers:
+        listing = list_enrolled_speakers()
+        owner_profiles = listing["owner_profiles"]
+        legacy_voiceprints = listing["legacy_voiceprints"]
+
+        if owner_profiles:
+            print("Owner profiles:")
+            for s in owner_profiles:
                 print(f"  - {s}")
-        else:
+        if legacy_voiceprints:
+            print("Legacy voiceprints:")
+            for s in legacy_voiceprints:
+                print(f"  - {s}")
+        if not owner_profiles and not legacy_voiceprints:
             print("No enrolled speakers found.")
         return
 
@@ -275,7 +297,6 @@ def main():
         pipeline = VoiceTrustPipeline(
             device=device,
             verification_threshold=args.threshold,
-            spoof_threshold=args.spoof_threshold,
         )
     except Exception as e:
         print(f"Error initializing pipeline: {e}")
@@ -312,17 +333,43 @@ def main():
             sys.exit(1)
         return
 
+    if args.enroll_sample and args.speaker:
+        try:
+            result = pipeline.enroll_owner_sample(args.speaker, args.audio)
+            if not args.json:
+                print(f"Appended owner sample for '{args.speaker}'.")
+                print(f"Sample count: {result['sample_count']}")
+                print(f"Aggregate embedding: {result['aggregate_embedding_file']}")
+            else:
+                print(json.dumps({"status": "success", **result}, indent=2))
+        except Exception as e:
+            print(f"Owner sample enrollment failed: {e}")
+            import traceback
+            traceback.print_exc()
+            sys.exit(1)
+        return
+
     # Analyze audio
     try:
         # Load existing voiceprints
         if args.speaker:
-            voiceprint = load_voiceprint(args.speaker)
-            if voiceprint is not None:
-                pipeline.load_voiceprint(args.speaker, str(VOICEPRINT_DIR / f"{args.speaker}.npy"))
+            owner_profile_loaded = False
+            try:
+                owner_profile_loaded = pipeline.load_owner_profile(args.speaker)
+            except Exception:
+                owner_profile_loaded = False
+
+            if owner_profile_loaded:
                 if not args.json:
-                    print(f"Loaded voiceprint for speaker: {args.speaker}")
-            elif not args.json:
-                print(f"Warning: Speaker '{args.speaker}' not enrolled. Run with --enroll first.")
+                    print(f"Loaded owner profile for speaker: {args.speaker}")
+            else:
+                voiceprint = load_voiceprint(args.speaker)
+                if voiceprint is not None:
+                    pipeline.load_voiceprint(args.speaker, str(VOICEPRINT_DIR / f"{args.speaker}.npy"))
+                    if not args.json:
+                        print(f"Loaded voiceprint for speaker: {args.speaker}")
+                elif not args.json:
+                    print(f"Warning: Speaker '{args.speaker}' not enrolled. Run with --enroll first.")
 
         if not args.json:
             print(f"Analyzing: {args.audio}")

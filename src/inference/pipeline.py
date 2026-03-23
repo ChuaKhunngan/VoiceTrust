@@ -1,8 +1,9 @@
-"""Inference pipeline for VoiceTrust - integration with SpeechBrain pre-trained models.
+"""Inference pipeline for VoiceTrust.
 
-This is the refactored version using proven open-source models:
+Current mainline focuses on:
 - SpeechBrain ECAPA-TDNN for speaker verification
-- SpeechBrain anti-spoofing model for deepfake detection
+- audio quality and speech-activity metadata
+- STT-independent trust scoring
 """
 import torch
 import numpy as np
@@ -14,10 +15,9 @@ import warnings
 try:
     from models.speechbrain_wrapper import (
         SpeechBrainSpeakerVerifier,
-        AntiSpoofingDetector,
-        compute_trust_score,
         AudioPreprocessor,
     )
+    from data.owner_profiles import OwnerProfileStore
     SPEECHBRAIN_AVAILABLE = True
 except ImportError:
     SPEECHBRAIN_AVAILABLE = False
@@ -28,43 +28,29 @@ except ImportError:
 class TrustScore:
     """Trust analysis results."""
 
-    deepfake_score: float
     speaker_match: float
     audio_quality: float
-    language_consistency: float
     overall_trust: float
     confidence: float
-    is_synthetic: bool
-    spoof_probability: float
     speaker_id: Optional[str] = None
     speech_duration: float = 0.0
     speech_ratio: float = 0.0
     vad_status: str = "unavailable"
-    detected_language: Optional[str] = None
-    language_confidence: float = 0.0
     failure_reason: Optional[str] = None
-    raw_spoof_prob: float = 0.0
     raw_speaker_score: float = 0.0
 
     def to_dict(self) -> Dict[str, Any]:
         return {
-            "deepfake_score": self.deepfake_score,
             "speaker_match": self.speaker_match,
             "audio_quality": self.audio_quality,
-            "language_consistency": self.language_consistency,
             "overall_trust": self.overall_trust,
             "confidence": self.confidence,
-            "is_synthetic": self.is_synthetic,
-            "spoof_probability": self.spoof_probability,
             "speaker_id": self.speaker_id,
             "speech_duration": self.speech_duration,
             "speech_ratio": self.speech_ratio,
             "vad_status": self.vad_status,
-            "detected_language": self.detected_language,
-            "language_confidence": self.language_confidence,
             "failure_reason": self.failure_reason,
             "raw_scores": {
-                "spoof_probability": self.raw_spoof_prob,
                 "speaker_similarity": self.raw_speaker_score,
             },
         }
@@ -78,10 +64,8 @@ class VoiceTrustPipeline:
         device: str = "cpu",
         sample_rate: int = 16000,
         verification_threshold: float = 0.25,
-        spoof_threshold: float = 0.5,
         weights: Optional[Dict[str, float]] = None,
         speaker_model: str = "ecapa_voxceleb",
-        spoofing_model: str = "rawnet2_asvspoof",
     ):
         if not SPEECHBRAIN_AVAILABLE:
             raise RuntimeError(
@@ -91,16 +75,17 @@ class VoiceTrustPipeline:
         self.device = device
         self.sample_rate = sample_rate
         self.weights = weights or {
-            "deepfake": 0.4,
-            "speaker": 0.3,
-            "quality": 0.2,
-            "language": 0.1,
+            "speaker": 0.75,
+            "quality": 0.25,
+            "language": 0.0,
         }
-        self.spoof_threshold = spoof_threshold
         self.verification_threshold = verification_threshold
         self.preprocessor = AudioPreprocessor(target_sample_rate=sample_rate)
         self.min_speech_duration = 1.5
         self.min_speech_ratio = 0.25
+        self.owner_profile_store = OwnerProfileStore(
+            Path(__file__).resolve().parent.parent.parent / "data" / "owners"
+        )
 
         print("Initializing VoiceTrust pipeline...")
         print(f"Device: {device}")
@@ -115,15 +100,6 @@ class VoiceTrustPipeline:
             print(f"Warning: Could not load speaker verification model: {e}")
             self.speaker_verifier = None
 
-        try:
-            self.spoofing_detector = AntiSpoofingDetector(
-                model_name=spoofing_model,
-                device=device,
-            )
-        except Exception as e:
-            print(f"Warning: Could not load anti-spoofing model: {e}")
-            self.spoofing_detector = None
-
         print("Pipeline initialized successfully")
 
     def analyze_audio(
@@ -136,41 +112,28 @@ class VoiceTrustPipeline:
             raise FileNotFoundError(f"Audio file not found: {audio_path}")
 
         speech_duration, speech_ratio, vad_status, failure_reason = self._analyze_speech(audio_path)
-        deepfake_score, spoof_prob = self._analyze_deepfake(audio_path)
         speaker_match, raw_speaker_score = self._verify_speaker(audio_path, speaker_id)
         audio_quality = self._analyze_quality(audio_path)
-        language_consistency, detected_language, language_confidence = self._analyze_language(
-            audio_path, expected_language
-        )
 
         if failure_reason in {"too_short", "insufficient_speech"}:
             speaker_match = -1.0
             raw_speaker_score = 0.0
 
         overall_trust, confidence = self._compute_overall_trust(
-            deepfake_score=deepfake_score,
             speaker_match=speaker_match,
             audio_quality=audio_quality,
-            language_consistency=language_consistency,
         )
 
         return TrustScore(
-            deepfake_score=deepfake_score,
             speaker_match=speaker_match,
             audio_quality=audio_quality,
-            language_consistency=language_consistency,
             overall_trust=overall_trust,
             confidence=confidence,
-            is_synthetic=spoof_prob > self.spoof_threshold,
-            spoof_probability=spoof_prob,
             speaker_id=speaker_id,
             speech_duration=speech_duration,
             speech_ratio=speech_ratio,
             vad_status=vad_status,
-            detected_language=detected_language,
-            language_confidence=language_confidence,
             failure_reason=failure_reason,
-            raw_spoof_prob=spoof_prob,
             raw_speaker_score=raw_speaker_score,
         )
 
@@ -274,30 +237,19 @@ class VoiceTrustPipeline:
 
     def _compute_overall_trust(
         self,
-        deepfake_score: float,
         speaker_match: float,
         audio_quality: float,
-        language_consistency: float,
     ) -> Tuple[float, float]:
         if speaker_match >= 0:
             overall = (
-                self.weights["deepfake"] * deepfake_score
-                + self.weights["speaker"] * speaker_match
+                self.weights["speaker"] * speaker_match
                 + self.weights["quality"] * audio_quality
-                + self.weights["language"] * language_consistency
             )
+            scores = [speaker_match, audio_quality]
         else:
-            w_df = self.weights["deepfake"] + self.weights["speaker"] / 2
-            w_q = self.weights["quality"] + self.weights["speaker"] / 2
-            overall = (
-                w_df * deepfake_score
-                + w_q * audio_quality
-                + self.weights["language"] * language_consistency
-            )
+            overall = audio_quality
+            scores = [audio_quality]
 
-        scores = [deepfake_score, audio_quality, language_consistency]
-        if speaker_match >= 0:
-            scores.append(speaker_match)
         variance = np.var(scores)
         confidence = max(0.0, min(100.0, 100.0 - variance / 10))
         return overall, confidence
@@ -306,6 +258,21 @@ class VoiceTrustPipeline:
         if self.speaker_verifier is None:
             raise RuntimeError("Speaker verifier not initialized")
         return self.speaker_verifier.enroll(speaker_id, audio_path)
+
+    def enroll_owner_sample(self, speaker_id: str, audio_path: str) -> dict:
+        if self.speaker_verifier is None:
+            raise RuntimeError("Speaker verifier not initialized")
+
+        embedding = self.speaker_verifier.enroll(speaker_id, audio_path)
+        profile = self.owner_profile_store.append_sample(speaker_id, audio_path, embedding)
+        aggregate_path = self.owner_profile_store.speaker_dir(speaker_id) / profile.aggregate_embedding_file
+        self.speaker_verifier.load_voiceprint(speaker_id, str(aggregate_path))
+
+        return {
+            "speaker_id": speaker_id,
+            "sample_count": len(profile.samples),
+            "aggregate_embedding_file": str(aggregate_path),
+        }
 
     def get_enrolled_speakers(self) -> list:
         if self.speaker_verifier is None:
@@ -322,8 +289,17 @@ class VoiceTrustPipeline:
             raise RuntimeError("Speaker verifier not initialized")
         self.speaker_verifier.load_voiceprint(speaker_id, path)
 
-    def set_spoof_threshold(self, threshold: float) -> None:
-        self.spoof_threshold = threshold
+    def load_owner_profile(self, speaker_id: str) -> bool:
+        if self.speaker_verifier is None:
+            raise RuntimeError("Speaker verifier not initialized")
+        profile = self.owner_profile_store.load_profile(speaker_id)
+        if profile is None:
+            return False
+        aggregate_path = self.owner_profile_store.speaker_dir(speaker_id) / profile.aggregate_embedding_file
+        if not aggregate_path.exists():
+            return False
+        self.speaker_verifier.load_voiceprint(speaker_id, str(aggregate_path))
+        return True
 
     def set_verification_threshold(self, threshold: float) -> None:
         self.verification_threshold = threshold

@@ -69,7 +69,6 @@ Planned first-class states:
 - `too_short`
 - `too_noisy`
 - `verification_unavailable`
-- `spoof_backend_unavailable`
 - `language_id_unavailable`
 - `inconclusive`
 

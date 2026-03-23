@@ -26,12 +26,11 @@ uv pip install --python .venv/bin/python torchcodec
 
 ## Important compatibility notes
 
-### 1) Hugging Face Hub compatibility
-Current SpeechBrain path required pinning:
-- `huggingface-hub < 1.0`
+### 1) Local model assets instead of Hugging Face runtime dependency
+Current mainline speaker verification uses project-local assets under:
+- `assets/models/ecapa_voxceleb/`
 
-Reason:
-- newer `huggingface-hub` versions removed/changed behavior relied on by the current SpeechBrain release path (`use_auth_token` compatibility)
+VoiceTrust no longer treats Hugging Face as a required runtime dependency for the main speaker path.
 
 ### 2) TorchAudio / SpeechBrain compatibility shim
 A minimal shim was added in:

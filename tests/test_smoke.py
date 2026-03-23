@@ -15,7 +15,7 @@ def _extract_json_object(text: str) -> dict:
 
 
 def test_demo_json_smoke():
-    audio = ROOT / "remote-import" / "snapshot_20260322" / "test_audio.wav"
+    audio = ROOT / "tests" / "fixtures" / "test_audio.wav"
     assert audio.exists(), f"Missing test audio: {audio}"
 
     cmd = [

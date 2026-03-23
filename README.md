@@ -4,7 +4,7 @@ VoiceTrust is a voice-message trust layer for OpenClaw. It is designed to answer
 
 > Is this incoming voice message likely to be spoken by the enrolled owner?
 
-The current project direction is **integration-first**:
+The current project direction is integration-first:
 - prefer proven open-source speaker verification components
 - keep latency practical for real voice-note workflows
 - return structured trust signals instead of pretending to be perfect biometric authentication
@@ -13,14 +13,15 @@ The current project direction is **integration-first**:
 
 ## Current Status
 
-This repository area is currently in **restructure / open-source preparation**.
+This repository is in early open-source preparation.
 
-A remote prototype was imported as a code asset and is preserved under:
+The current public-facing mainline is centered on:
+- SpeechBrain-based speaker verification
+- owner-profile persistence
+- audio-quality and speech-activity metadata
+- a simple local CLI/demo path
 
-- `remote-import/snapshot_20260322/`
-
-That imported snapshot is treated as the **source asset base**, not as the final public structure.
-The current refactor goal is to gradually turn that prototype into a clean, maintainable, open-source-ready project under `projects/voicetrust/` **without over-modifying working code too early**.
+Historical import artifacts and restructuring notes are preserved under `archive/` and are not part of the public mainline story.
 
 ---
 
@@ -35,9 +36,9 @@ VoiceTrust sits on the voice-message path:
 5. OpenClaw decides how to use that signal
 
 Primary target question:
-- **“Is this likely Kyleo speaking?”**
+- **Is this likely the enrolled owner speaking?**
 
-Non-goal for the first versions:
+Non-goals for the first versions:
 - perfect standalone biometric authentication
 - training custom production models from scratch
 - overengineered research architecture before integration is proven
@@ -46,77 +47,58 @@ Non-goal for the first versions:
 
 ## Current Technical Direction
 
-The current imported prototype already validates a promising path:
-
+Current mainline direction:
 - **Speaker verification:** SpeechBrain ECAPA-TDNN based flow
-- **Voiceprint persistence:** simple embedding storage
-- **Trust scoring:** composite structured output for downstream integration
-- **Audio quality heuristics:** basic practical checks
-- **Anti-spoofing:** currently limited / best-effort, not yet a trusted production-grade signal
+- **Voiceprint persistence:** owner profile support
+- **Trust scoring:** speaker verification + audio quality
+- **Speech metadata:** `speech_duration`, `speech_ratio`, `vad_status`, `failure_reason`
 
-The intended long-term direction is:
-- treat **SpeechBrain as the primary engine** for VoiceTrust's speech-side trust layer
-- keep VoiceTrust **independent from STT backend choice**
+Long-term direction:
+- keep VoiceTrust independent from STT backend choice
 - keep mature OSS components where possible
 - keep custom code focused on orchestration, scoring, persistence, and integration
-- make OpenClaw consumption easy and explicit
+- keep OpenClaw consumption easy and explicit
 
 ---
 
 ## Repository Layout
 
-Current project layout:
-
 ```text
-projects/voicetrust/
-├── README.md                     # public-facing overview
-├── BLUEPRINT.md                  # internal architecture + refactor target
-├── ROADMAP.md                    # project direction and milestones
-├── LICENSE                       # repository license placeholder/selection
-├── .gitignore                    # sane defaults for Python/audio/model caches
-├── pyproject.toml                # modern packaging metadata (minimal for now)
+voicetrust/
+├── README.md
+├── LICENSE
+├── pyproject.toml
+├── requirements.txt
+├── configs/
+├── assets/models/
+├── scripts/demo.py
+├── src/
+├── tests/
 ├── docs/
-│   ├── import-notes.md           # provenance of imported remote snapshot
-│   ├── restructure-plan.md       # low-risk restructure plan
-│   └── open-source-readiness.md  # what remains before public release
-└── remote-import/
-    └── snapshot_20260322/        # imported remote prototype asset
+└── archive/
 ```
 
-For now, the imported snapshot remains intact as the working code asset while we stabilize structure and documentation around it.
-
----
-
-## Development Principle
-
-At this phase:
-
-- **preserve working imported code as an asset**
-- **avoid unnecessary code churn**
-- **improve project structure first**
-- **separate legacy/training-era residue from the new mainline gradually**
-- **prepare for open source by clarifying purpose, boundaries, and packaging**
+Public mainline intent:
+- `scripts/demo.py` — local CLI/demo entry
+- `src/` — runtime logic
+- `configs/` — current runtime config
+- `assets/models/` — local project-owned model assets
+- `tests/` — minimal smoke and owner-profile tests
+- `docs/` — public-facing docs
+- `archive/` — historical materials not needed for normal runtime
 
 ---
 
 ## What Comes Next
 
-The next steps are expected to be:
-
-1. define the target public repository structure
-2. identify which imported modules stay as mainline vs become legacy/reference
-3. define the OpenClaw integration contract
-4. add minimal smoke tests
-5. tighten licensing / dependency / documentation for open-source release
-6. keep a repeatable local run path under project-local `uv` environment
+Expected next steps:
+1. tighten public docs and dependency story
+2. keep only the minimum supported runtime path in mainline
+3. make tests independent from historical import artifacts
+4. clarify what is supported vs archived
+5. prepare first public release hygiene
 
 See also:
-- `BLUEPRINT.md`
-- `docs/restructure-plan.md`
-- `docs/open-source-readiness.md`
-- `docs/local-run-notes.md`
-- `docs/upstream-policy.md`
+- `docs/quickstart.md`
 - `docs/model-assets.md`
-- `docs/speechbrain-engine-plan.md`
-- `docs/language-and-owner-profiles.md`
-- `ROADMAP.md`
+- `archive/`

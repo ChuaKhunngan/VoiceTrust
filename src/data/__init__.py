@@ -1,4 +1,5 @@
-"""Data module."""
-from .dataset import AudioDataset, SpeakerDataset, create_dataloader
+"""Data utilities for the current VoiceTrust mainline."""
 
-__all__ = ["AudioDataset", "SpeakerDataset", "create_dataloader"]
+from .owner_profiles import OwnerProfile, OwnerProfileStore, OwnerSample
+
+__all__ = ["OwnerProfile", "OwnerProfileStore", "OwnerSample"]

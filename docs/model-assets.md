@@ -8,7 +8,7 @@ Current mainline model assets live inside the project at:
 
 - `assets/models/ecapa_voxceleb/`
 
-This directory currently contains the local SpeechBrain 1.0.3-compatible ECAPA speaker verification assets used by VoiceTrust.
+This directory contains the local SpeechBrain 1.0.3-compatible ECAPA speaker verification assets used by VoiceTrust.
 
 ## Included local assets
 
@@ -27,11 +27,13 @@ Reasons for local asset packaging:
 - no runtime dependence on remote model registries
 - reduced risk from upstream hosted repo churn
 
-## Current limitation
+## Current mainline scope
 
-Only the main speaker verification path is local-asset based right now.
-Anti-spoofing remains disabled until local project-owned model assets are prepared for that task as well.
+The local model assets currently support:
+- speaker verification / recognition
 
-## Future direction
+They do not currently bundle:
+- anti-spoofing
+- language ID
 
-If additional SpeechBrain-backed capabilities are added (for example LID), their runtime assets should also be brought under local project control rather than fetched dynamically at runtime.
+Those should only be added later when local project-owned assets are truly available.
