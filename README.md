@@ -54,6 +54,18 @@ flowchart TD
     H --> L[Return final assistant response]
     J --> L
     K --> L
+
+    classDef channel fill:#dbeafe,stroke:#2563eb,color:#111827,stroke-width:1.5px;
+    classDef processing fill:#dcfce7,stroke:#16a34a,color:#111827,stroke-width:1.5px;
+    classDef decision fill:#fef3c7,stroke:#d97706,color:#111827,stroke-width:1.5px;
+    classDef output fill:#f3e8ff,stroke:#9333ea,color:#111827,stroke-width:1.5px;
+    classDef failure fill:#fee2e2,stroke:#dc2626,color:#111827,stroke-width:1.5px;
+
+    class A,B channel;
+    class C,D,E,D1,E1,E2,E3,E6,F processing;
+    class D2,E4,G,I decision;
+    class H,K,L output;
+    class D3,E5,J failure;
 ```
 
 In short:
