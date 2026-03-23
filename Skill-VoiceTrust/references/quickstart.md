@@ -1,7 +1,7 @@
 # VoiceTrust Quickstart
 
 This guide is for the **first time** you set up VoiceTrust after downloading the `Skill-VoiceTrust/` package.
-It explains how to prepare the runtime, enroll the owner voiceprint, and verify that the skill is ready for normal use.
+It explains how to prepare the runtime, collect the owner audio, enroll the owner voiceprint, and verify that the skill is ready for normal use.
 
 For normal day-to-day use, you should not need this file.
 
@@ -23,7 +23,35 @@ The runtime bundle includes its own `src/` and local model assets under `runtime
 
 ---
 
-## 1. Enter the runtime directory
+## 1. Collect the owner audio first
+
+Before you initialize VoiceTrust for real use, you must decide **whose voice** will be treated as the owner.
+VoiceTrust is not useful until the owner voiceprint is enrolled.
+
+Required preparation:
+- choose the owner identity first
+- prepare **3 to 5** owner voice samples before enrollment
+- keep all samples from the **same person**
+- prefer natural speech in the owner’s usual speaking voice
+- avoid heavy background noise, music, or overlapping speakers
+- prefer clips in the rough **3–10 second** range
+
+Recommended naming example:
+
+```text
+/path/to/owner_sample_01.wav
+/path/to/owner_sample_02.wav
+/path/to/owner_sample_03.wav
+```
+
+Recommended `speaker_id`:
+- `owner`
+
+If you do not have the owner audio yet, stop here and gather it first.
+
+---
+
+## 2. Enter the runtime directory
 
 From the package root:
 
@@ -35,7 +63,7 @@ All setup commands below are run from inside `runtime/`.
 
 ---
 
-## 2. Create the virtual environment
+## 3. Create the virtual environment
 
 Create a local virtual environment with `uv`:
 
@@ -45,7 +73,7 @@ uv venv .venv
 
 ---
 
-## 3. Install dependencies
+## 4. Install dependencies
 
 Install the required Python packages:
 
@@ -58,7 +86,7 @@ uv pip install --python .venv/bin/python torchcodec
 
 ---
 
-## 4. Verify that the runtime starts
+## 5. Verify that the runtime starts
 
 Run a basic speaker listing command:
 
@@ -70,18 +98,11 @@ If this is the first setup, it is normal to see that no enrolled speaker exists 
 
 ---
 
-## 5. Enroll the owner voiceprint
+## 6. Enroll the owner voiceprint
 
-Before VoiceTrust can verify anyone, you must enroll the owner.
+Once the owner audio is ready, enroll it under a single `speaker_id`.
 
-Recommended policy:
-- record **3 to 5** short owner voice samples
-- use clean speech when possible
-- prefer natural speaking voice
-- avoid heavy background noise
-- prefer clips in the rough **3–10 second** range
-
-For each sample, run:
+For the first sample:
 
 ```bash
 uv run --python .venv/bin/python ../scripts/demo.py \
@@ -121,7 +142,7 @@ data/owners/owner/
 
 ---
 
-## 6. Confirm enrollment state
+## 7. Confirm enrollment state
 
 After enrollment, confirm that the owner profile exists:
 
@@ -138,7 +159,7 @@ Owner profiles:
 
 ---
 
-## 7. Run a verification test
+## 8. Run a real verification test
 
 Pick a voice sample that should match the enrolled owner and run:
 
@@ -168,7 +189,7 @@ At this stage, the important thing is that:
 
 ---
 
-## 8. Register the local voice-message convention in `TOOLS.md`
+## 9. Register the local voice-message convention in `TOOLS.md`
 
 After VoiceTrust is working, add a local convention to your `TOOLS.md`.
 
@@ -196,7 +217,7 @@ Put local behavior conventions in `TOOLS.md`.
 
 ---
 
-## 9. Understand the current trust rule
+## 10. Understand the current trust rule
 
 Current mainline formula:
 
@@ -216,7 +237,7 @@ Practical downgrades:
 
 ---
 
-## 10. How to use VoiceTrust in normal operation
+## 11. How to use VoiceTrust in normal operation
 
 Once setup is complete, the normal pattern is simple:
 
@@ -240,7 +261,7 @@ uv run --python .venv/bin/python ../scripts/demo.py \
 
 ---
 
-## 11. Recommended operational habits
+## 12. Recommended operational habits
 
 - keep using the same `speaker_id` for the same owner
 - prefer a small curated owner sample set over random noisy clips
@@ -250,7 +271,7 @@ uv run --python .venv/bin/python ../scripts/demo.py \
 
 ---
 
-## 12. When to revisit this quickstart
+## 13. When to revisit this quickstart
 
 Read this file again when:
 - setting up the package on a new machine
