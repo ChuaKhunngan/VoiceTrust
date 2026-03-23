@@ -1,7 +1,7 @@
 # VoiceTrust Quickstart
 
 This guide is for the **first time** you set up VoiceTrust after downloading the `Skill-VoiceTrust/` package.
-It explains how to prepare the runtime, collect the owner audio, enroll the owner voiceprint, and verify that the skill is ready for normal use.
+It explains how to register the local usage convention, prepare the runtime, collect the owner audio, enroll the owner voiceprint, and verify that the skill is ready for normal use.
 
 For normal day-to-day use, you should not need this file.
 
@@ -23,7 +23,36 @@ The runtime bundle includes its own `src/` and local model assets under `runtime
 
 ---
 
-## 1. Collect the owner audio first
+## 1. Register the local voice-message convention in `TOOLS.md`
+
+Before you do runtime setup, register the local voice-handling rule in your `TOOLS.md`.
+This makes the intended day-to-day behavior explicit before enrollment and verification work begin.
+
+The intended rule is:
+- when a voice message arrives, do **STT**
+- also run **VoiceTrust**
+- merge both before replying
+- if the message is a **voice command** and VoiceTrust confidence is too low, **do not execute the command**
+- if the message is **not** being treated as a command (for example: chat content, narration, music, or other non-command audio), it may still be handled as ordinary content
+
+Recommended wording:
+
+```md
+## Incoming Voice Message
+- Do STT.
+- Also run VoiceTrust.
+- Merge both before replying.
+- If this is a voice command and trust is low, do not execute the command.
+- If this is not a command, low trust does not automatically block normal content handling.
+```
+
+Keep this section short.
+Do not put machine-specific paths into the skill itself.
+Put local behavior conventions in `TOOLS.md`.
+
+---
+
+## 2. Collect the owner audio first
 
 Before you initialize VoiceTrust for real use, you must decide **whose voice** will be treated as the owner.
 VoiceTrust is not useful until the owner voiceprint is enrolled.
@@ -51,7 +80,7 @@ If you do not have the owner audio yet, stop here and gather it first.
 
 ---
 
-## 2. Enter the runtime directory
+## 3. Enter the runtime directory
 
 From the package root:
 
@@ -63,7 +92,7 @@ All setup commands below are run from inside `runtime/`.
 
 ---
 
-## 3. Create the virtual environment
+## 4. Create the virtual environment
 
 Create a local virtual environment with `uv`:
 
@@ -73,7 +102,7 @@ uv venv .venv
 
 ---
 
-## 4. Install dependencies
+## 5. Install dependencies
 
 Install the required Python packages:
 
@@ -86,7 +115,7 @@ uv pip install --python .venv/bin/python torchcodec
 
 ---
 
-## 5. Verify that the runtime starts
+## 6. Verify that the runtime starts
 
 Run a basic speaker listing command:
 
@@ -98,7 +127,7 @@ If this is the first setup, it is normal to see that no enrolled speaker exists 
 
 ---
 
-## 6. Enroll the owner voiceprint
+## 7. Enroll the owner voiceprint
 
 Once the owner audio is ready, enroll it under a single `speaker_id`.
 
@@ -142,7 +171,7 @@ data/owners/owner/
 
 ---
 
-## 7. Confirm enrollment state
+## 8. Confirm enrollment state
 
 After enrollment, confirm that the owner profile exists:
 
@@ -159,7 +188,7 @@ Owner profiles:
 
 ---
 
-## 8. Run a real verification test
+## 9. Run a real verification test
 
 Pick a voice sample that should match the enrolled owner and run:
 
@@ -186,34 +215,6 @@ At this stage, the important thing is that:
 - the command runs successfully
 - a JSON object is returned
 - the result looks reasonable for a matching owner sample
-
----
-
-## 9. Register the local voice-message convention in `TOOLS.md`
-
-After VoiceTrust is working, add a local convention to your `TOOLS.md`.
-
-The intended rule is:
-- when a voice message arrives, do **STT**
-- also run **VoiceTrust**
-- merge both before replying
-- if the message is a **voice command** and VoiceTrust confidence is too low, **do not execute the command**
-- if the message is **not** being treated as a command (for example: chat content, narration, music, or other non-command audio), it may still be handled as ordinary content
-
-Recommended wording:
-
-```md
-## Incoming Voice Message
-- Do STT.
-- Also run VoiceTrust.
-- Merge both before replying.
-- If this is a voice command and trust is low, do not execute the command.
-- If this is not a command, low trust does not automatically block normal content handling.
-```
-
-Keep this section short.
-Do not put machine-specific paths into the skill itself.
-Put local behavior conventions in `TOOLS.md`.
 
 ---
 

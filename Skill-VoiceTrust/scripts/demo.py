@@ -7,16 +7,16 @@ Optimized for Chinese/English voice messages.
 
 Usage:
     # Analyze without speaker verification
-    python demo.py --audio sample.wav
+    uv run --python .venv/bin/python ../scripts/demo.py --audio sample.wav
 
     # Enroll a speaker
-    python demo.py --audio enrollment.wav --speaker owner --enroll
+    uv run --python .venv/bin/python ../scripts/demo.py --audio enrollment.wav --speaker owner --enroll
 
     # Verify a speaker
-    python demo.py --audio message.wav --speaker owner
+    uv run --python .venv/bin/python ../scripts/demo.py --audio message.wav --speaker owner
 
     # Create test audio
-    python demo.py --create-demo test.wav
+    uv run --python .venv/bin/python ../scripts/demo.py --create-demo test.wav
 """
 import argparse
 import sys
@@ -24,8 +24,11 @@ import os
 import json
 from pathlib import Path
 
-# Add src to path
-sys.path.insert(0, str(Path(__file__).parent.parent / "src"))
+PACKAGE_ROOT = Path(__file__).resolve().parent.parent
+RUNTIME_ROOT = PACKAGE_ROOT / "runtime"
+
+# Add runtime src to path
+sys.path.insert(0, str(RUNTIME_ROOT / "src"))
 
 import torch
 import numpy as np
@@ -36,13 +39,13 @@ try:
 except ImportError as e:
     print(f"Error importing VoiceTrust: {e}")
     print("\nPlease install dependencies:")
-    print("  pip install -r requirements.txt")
+    print("  uv pip install --python .venv/bin/python -r requirements.txt")
     SPEECHBRAIN_AVAILABLE = False
 
 
 # Default storage
-VOICEPRINT_DIR = Path(__file__).parent.parent / "data" / "voiceprints"
-OWNER_PROFILE_DIR = Path(__file__).parent.parent / "data" / "owners"
+VOICEPRINT_DIR = RUNTIME_ROOT / "data" / "voiceprints"
+OWNER_PROFILE_DIR = RUNTIME_ROOT / "data" / "owners"
 
 
 def print_banner():

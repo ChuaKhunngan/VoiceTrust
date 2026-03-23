@@ -20,7 +20,11 @@ else:
         import torchaudio  # type: ignore
         if not hasattr(torchaudio, "list_audio_backends"):
             def _list_audio_backends() -> list[str]:
-                return []
+                try:
+                    import soundfile  # noqa: F401
+                    return ["soundfile"]
+                except Exception:
+                    return []
             torchaudio.list_audio_backends = _list_audio_backends  # type: ignore[attr-defined]
     except Exception:
         torchaudio = None  # noqa: F841
