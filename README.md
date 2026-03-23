@@ -15,7 +15,7 @@ This makes VoiceTrust especially valuable for assistant workflows where voice is
 VoiceTrust is not presented as perfect biometric authentication.
 It is a practical, integration-first trust signal for real OpenClaw channel workflows.
 
-**Created by Kyleo, with Jarvis (OpenClaw) as collaborative developer, supported by CodeLeader.**
+**Developed in collaboration with Jarvis, the OpenClaw-based AI partner behind this workflow, with additional support from CodeLeader.**
 
 ---
 
