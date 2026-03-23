@@ -51,9 +51,12 @@ Not target question (for now):
 - [ ] Keep latency practical for real use in OpenClaw voice-message flows
 
 ### MVP-2. Reuse mature open-source building blocks
-- [ ] Prefer **SpeechBrain ECAPA-TDNN** or similarly proven speaker verification backends
+- [x] Prefer **SpeechBrain ECAPA-TDNN** or similarly proven speaker verification backends
 - [ ] Reuse existing audio preprocessing / VAD components where sensible
-- [ ] Avoid training-first assumptions for the first working version
+- [ ] Add **Language ID** as diagnostic metadata for Chinese / English / mixed speech conditions
+- [ ] Evolve from single-sample owner enrollment toward curated multi-sample owner support
+- [x] Keep VoiceTrust **independent from STT backend choice**
+- [x] Avoid training-first assumptions for the first working version
 - [ ] Keep custom code focused on orchestration, scoring, persistence, and OpenClaw integration
 
 ### MVP-3. OpenClaw-facing integration shape

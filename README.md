@@ -55,6 +55,8 @@ The current imported prototype already validates a promising path:
 - **Anti-spoofing:** currently limited / best-effort, not yet a trusted production-grade signal
 
 The intended long-term direction is:
+- treat **SpeechBrain as the primary engine** for VoiceTrust's speech-side trust layer
+- keep VoiceTrust **independent from STT backend choice**
 - keep mature OSS components where possible
 - keep custom code focused on orchestration, scoring, persistence, and integration
 - make OpenClaw consumption easy and explicit
