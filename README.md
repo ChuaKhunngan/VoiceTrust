@@ -1,22 +1,19 @@
 # VoiceTrust for OpenClaw
 
-VoiceTrust is the missing trust layer in OpenClaw voice-message handling.
+VoiceTrust is a trust layer for voice messages in OpenClaw.
 
-Most voice workflows stop at transcription: the system figures out **what was said**, but not **who likely said it**. VoiceTrust exists to close that gap. It sits on the path from incoming channel audio to final agent action, adding speaker verification and trust scoring before OpenClaw decides whether to reply, execute, or ask for confirmation.
+When a voice message comes in, STT can tell the system **what was said**. VoiceTrust adds the other half of the picture: **who likely said it, and how much that voice should be trusted**.
 
-In practice, VoiceTrust helps OpenClaw treat voice messages more intelligently:
-- transcribe the content with any OpenClaw-compatible STT path
-- verify whether the speaker likely matches the enrolled owner
-- combine content + trust before taking action
-- block risky voice-command execution when trust is too low
+It is built for a simple job:
+- work with any OpenClaw-compatible STT path
+- check whether the speaker likely matches the enrolled owner
+- combine transcript + trust before the agent replies or acts
+- stop risky voice-command execution when trust is too low
 
 **VoiceTrust does not provide STT itself.**
-It is designed to work alongside whatever STT path OpenClaw is already using, and should remain compatible with any OpenClaw-supported transcription approach.
+It is designed to sit alongside whatever STT path OpenClaw is already using, and remain compatible with different OpenClaw transcription setups.
 
-This makes VoiceTrust especially valuable for assistant workflows where voice is not just content, but also an input surface for intent, control, and identity-sensitive automation.
-
-VoiceTrust is not presented as perfect biometric authentication.
-It is a practical, integration-first trust signal for real OpenClaw channel workflows.
+This makes it useful for voice workflows where messages are not just content, but also instructions, control input, or identity-sensitive actions.
 
 **Developed in collaboration with Jarvis, the OpenClaw-based AI partner behind this workflow, with additional support from [CodeLeader](https://github.com/ChuaKhunngan/CodeLeader).**
 
@@ -266,16 +263,6 @@ If this repository is redistributed in another form, keep:
 - the project’s own `LICENSE`
 - upstream license / notice information for bundled third-party model assets where required
 - clear attribution to SpeechBrain and the upstream pretrained model source
-
----
-
-## Current Limitations
-
-Current limitations include:
-- owner verification is the main supported path
-- anti-spoofing is not yet a complete production feature
-- trust scoring is heuristic and practical, not a formal identity proof
-- model assets are currently stored directly in the repository for bootstrap convenience
 
 ---
 
