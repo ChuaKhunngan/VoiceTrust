@@ -169,20 +169,24 @@ At this stage, the important thing is that:
 
 ## 8. Register the local voice-message convention in `TOOLS.md`
 
-After VoiceTrust is working, add a minimal local convention to your `TOOLS.md`.
+After VoiceTrust is working, add a local convention to your `TOOLS.md`.
 
 The intended rule is:
 - when a voice message arrives, do **STT**
 - also run **VoiceTrust**
 - merge both before replying
+- if the message is a **voice command** and VoiceTrust confidence is too low, **do not execute the command**
+- if the message is **not** being treated as a command (for example: chat content, narration, music, or other non-command audio), it may still be handled as ordinary content
 
-Recommended minimal wording:
+Recommended wording:
 
 ```md
 ## Incoming Voice Message
 - Do STT.
 - Also run VoiceTrust.
 - Merge both before replying.
+- If this is a voice command and trust is low, do not execute the command.
+- If this is not a command, low trust does not automatically block normal content handling.
 ```
 
 Keep this section short.
