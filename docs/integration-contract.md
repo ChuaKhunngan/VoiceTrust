@@ -52,6 +52,12 @@ Planned metadata additions for upcoming phases:
 - `language_confidence`
 - `failure_reason`
 
+Current local mainline already emits early versions of:
+- `speech_duration`
+- `speech_ratio`
+- `vad_status`
+- `failure_reason`
+
 ---
 
 ## Failure / uncertainty states
