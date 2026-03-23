@@ -29,36 +29,34 @@ This is not a code-structure diagram — it is the operational flow of how STT a
 
 ```mermaid
 flowchart TD
-    A[Channel receives voice message\nTelegram / WhatsApp / iMessage / etc.] --> B[OpenClaw ingests audio attachment]
-    B --> C[Normalize / stage audio for processing]
+    A[Voice message from channel] --> B[OpenClaw receives audio]
+    B --> C[Prepare audio]
 
     C --> D[Run STT]
     C --> E[Run VoiceTrust]
 
-    D --> D1[Transcript extracted]
-    D --> D2{STT success?}
-    D2 -- No --> D3[Transcript unavailable]
-    D2 -- Yes --> D1
+    D --> D2{STT ok?}
+    D2 -- Yes --> D1[Transcript]
+    D2 -- No --> D3[No transcript]
 
-    E --> E1[Load enrolled owner profile]
-    E1 --> E2[Speaker verification]
-    E2 --> E3[Trust result generated]
-    E3 --> E4{VoiceTrust success?}
-    E4 -- No --> E5[Trust unavailable / inconclusive]
-    E4 -- Yes --> E6[Structured trust output\nmatch / trust / confidence / VAD / quality]
+    E --> E1[Load owner profile]
+    E1 --> E2[Verify speaker]
+    E2 --> E4{Trust ok?}
+    E4 -- Yes --> E6[Trust result]
+    E4 -- No --> E5[Trust unavailable]
 
-    D1 --> F[Merge transcript + trust result]
+    D1 --> F[Merge transcript + trust]
     D3 --> F
     E5 --> F
     E6 --> F
 
-    F --> G{Is this being treated\nas a voice command?}
-    G -- No --> H[Reply using transcript + trust context]
+    F --> G{Voice command?}
+    G -- No --> H[Reply with context]
     G -- Yes --> I{Trust high enough?}
-    I -- No --> J[Do not execute command\nAsk for confirmation or fallback verification]
-    I -- Yes --> K[Execute intended command / action]
+    I -- No --> J[Do not execute]
+    I -- Yes --> K[Execute action]
 
-    H --> L[Return final assistant response]
+    H --> L[Final response]
     J --> L
     K --> L
 
@@ -69,7 +67,7 @@ flowchart TD
     classDef failure fill:#fee2e2,stroke:#dc2626,color:#111827,stroke-width:1.5px;
 
     class A,B channel;
-    class C,D,E,D1,E1,E2,E3,E6,F processing;
+    class C,D,E,D1,E1,E2,E6,F processing;
     class D2,E4,G,I decision;
     class H,K,L output;
     class D3,E5,J failure;
@@ -248,6 +246,26 @@ It contains:
 
 Use the skill bundle when you want a portable, self-contained VoiceTrust package
 separate from the full project repository.
+
+---
+
+## Acknowledgements and Upstream Credits
+
+VoiceTrust builds on open-source speaker verification work from the SpeechBrain ecosystem.
+
+This repository currently uses local copies of pretrained assets derived from:
+- **SpeechBrain** — https://github.com/speechbrain/speechbrain
+- **Model source referenced by the bundled assets** — `speechbrain/spkrec-ecapa-voxceleb`
+
+Attribution notes:
+- the included ECAPA-based weights and related asset files are not original VoiceTrust model training output
+- VoiceTrust uses them as upstream pretrained components inside a larger OpenClaw-oriented trust workflow
+- upstream copyright, license, and notice requirements for those components should be preserved when redistributing this project or its packaged skill bundle
+
+If this repository is redistributed in another form, keep:
+- the project’s own `LICENSE`
+- upstream license / notice information for bundled third-party model assets where required
+- clear attribution to SpeechBrain and the upstream pretrained model source
 
 ---
 
