@@ -15,6 +15,54 @@ It is a practical trust signal for automation and assistant workflows.
 
 ---
 
+## End-to-End Voice Message Flow
+
+The diagram below shows the intended OpenClaw workflow after a voice message is received from a channel.
+This is not a code-structure diagram — it is the operational flow of how STT and VoiceTrust work together.
+
+```mermaid
+flowchart TD
+    A[Channel receives voice message\nTelegram / WhatsApp / iMessage / etc.] --> B[OpenClaw ingests audio attachment]
+    B --> C[Normalize / stage audio for processing]
+
+    C --> D[Run STT]
+    C --> E[Run VoiceTrust]
+
+    D --> D1[Transcript extracted]
+    D --> D2{STT success?}
+    D2 -- No --> D3[Transcript unavailable]
+    D2 -- Yes --> D1
+
+    E --> E1[Load enrolled owner profile]
+    E1 --> E2[Speaker verification]
+    E2 --> E3[Trust result generated]
+    E3 --> E4{VoiceTrust success?}
+    E4 -- No --> E5[Trust unavailable / inconclusive]
+    E4 -- Yes --> E6[Structured trust output\nmatch / trust / confidence / VAD / quality]
+
+    D1 --> F[Merge transcript + trust result]
+    D3 --> F
+    E5 --> F
+    E6 --> F
+
+    F --> G{Is this being treated\nas a voice command?}
+    G -- No --> H[Reply using transcript + trust context]
+    G -- Yes --> I{Trust high enough?}
+    I -- No --> J[Do not execute command\nAsk for confirmation or fallback verification]
+    I -- Yes --> K[Execute intended command / action]
+
+    H --> L[Return final assistant response]
+    J --> L
+    K --> L
+```
+
+In short:
+- **STT** answers: “What was said?”
+- **VoiceTrust** answers: “Who likely said it, and how confident are we?”
+- OpenClaw should use **both** before replying or acting on voice input.
+
+---
+
 ## What VoiceTrust Does
 
 VoiceTrust focuses on the trust side of voice handling.
