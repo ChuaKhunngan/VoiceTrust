@@ -42,7 +42,6 @@ voiceprints/
 .huggingface/
 .cache/
 checkpoints/
-models/
 
 # Logs
 *.log

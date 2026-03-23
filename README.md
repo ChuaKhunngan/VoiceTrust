@@ -115,4 +115,8 @@ See also:
 - `docs/restructure-plan.md`
 - `docs/open-source-readiness.md`
 - `docs/local-run-notes.md`
+- `docs/upstream-policy.md`
+- `docs/model-assets.md`
+- `docs/speechbrain-engine-plan.md`
+- `docs/language-and-owner-profiles.md`
 - `ROADMAP.md`
