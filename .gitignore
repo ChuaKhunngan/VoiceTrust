@@ -38,6 +38,9 @@ htmlcov/
 /data/
 voiceprints/
 
+# Local archive / private history
+archive/
+
 # Model / huggingface / torch caches (local-project variants)
 .huggingface/
 .cache/

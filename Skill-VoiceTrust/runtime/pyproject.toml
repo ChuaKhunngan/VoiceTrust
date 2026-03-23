@@ -1,0 +1,61 @@
+[build-system]
+requires = ["setuptools>=68", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "voicetrust"
+version = "0.1.0"
+description = "VoiceTrust for OpenClaw: voice-message trust and speaker verification"
+readme = "README.md"
+requires-python = ">=3.10"
+license = { text = "MIT" }
+authors = [
+  { name = "Kyleo" }
+]
+keywords = [
+  "voice",
+  "speaker-verification",
+  "speechbrain",
+  "openclaw",
+  "voice-authentication",
+  "trust-scoring"
+]
+classifiers = [
+  "Development Status :: 3 - Alpha",
+  "Intended Audience :: Developers",
+  "License :: OSI Approved :: MIT License",
+  "Programming Language :: Python :: 3",
+  "Programming Language :: Python :: 3.10",
+  "Programming Language :: Python :: 3.11",
+  "Topic :: Multimedia :: Sound/Audio :: Analysis",
+  "Topic :: Scientific/Engineering :: Artificial Intelligence",
+]
+dependencies = [
+  "torch>=2.0.0",
+  "torchaudio>=2.0.0",
+  "numpy>=1.24.0",
+  "scipy>=1.10.0",
+  "librosa>=0.10.0",
+  "soundfile>=0.12.0",
+  "speechbrain==1.0.3",
+  "pyyaml>=6.0",
+  "tqdm>=4.65.0",
+]
+
+[project.optional-dependencies]
+dev = [
+  "pytest>=7.4.0",
+  "black>=23.0.0",
+]
+
+[project.urls]
+Homepage = "https://github.com/example/voicetrust"
+Repository = "https://github.com/example/voicetrust"
+Issues = "https://github.com/example/voicetrust/issues"
+
+[tool.setuptools]
+include-package-data = true
+
+[tool.black]
+line-length = 88
+target-version = ["py310"]
