@@ -76,3 +76,11 @@ For first-time environment setup, local installation, enrollment, or bootstrap i
 - `references/quickstart.md`
 
 Normal voice-message handling should not need the full quickstart.
+
+## Executable command rule
+
+For voice command execution, use **Scheme B**:
+- normal execution: `speech_duration >= 3.0`
+- short-voice override: allow execution when `speech_duration >= 1.2` and `speaker_match >= 85` and `confidence >= 85`
+- base execution gate still requires: `speaker_match >= 78`, `confidence >= 80`, `identity_score >= 82`, `vad_status == "ok"`, and no `failure_reason`
+

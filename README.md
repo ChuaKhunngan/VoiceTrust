@@ -281,3 +281,11 @@ When redistributing this project or its packaged skill bundle, keep:
 ## License
 
 MIT
+
+## Executable command rule
+
+For voice command execution, use **Scheme B**:
+- normal execution: `speech_duration >= 3.0`
+- short-voice override: allow execution when `speech_duration >= 1.2` and `speaker_match >= 85` and `confidence >= 85`
+- base execution gate still requires: `speaker_match >= 78`, `confidence >= 80`, `identity_score >= 82`, `vad_status == "ok"`, and no `failure_reason`
+
