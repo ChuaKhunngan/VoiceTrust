@@ -106,7 +106,6 @@ def print_result(result: TrustScore):
 
     print(f"Overall Trust Score: {result.overall_trust:.2f} ({result.trust_label.upper()})")
     print(f"Confidence: {result.confidence:.2f}")
-    print(f"Executable: {'YES' if result.executable else 'NO'}")
     print(f"Decision: {result.decision}")
     print(f"Speech Duration: {result.speech_duration:.2f}s")
     print(f"Speech Ratio: {result.speech_ratio:.3f}")
@@ -434,7 +433,7 @@ def main():
 
             # Recommendations
             print("RECOMMENDATIONS:")
-            if result.executable:
+            if result.decision == "allow_command":
                 print("  - Owner verification passed at executable level")
                 print("  - Command-capable trust threshold met")
                 print("  - Safe to use for voice command execution")

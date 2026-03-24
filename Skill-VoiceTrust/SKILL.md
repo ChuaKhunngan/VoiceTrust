@@ -35,7 +35,6 @@ VoiceTrust results may include:
 - `confidence`
 - `identity_score`
 - `trust_label`
-- `executable`
 - `decision`
 - `decision_reasons`
 - `speaker_id`
@@ -48,7 +47,7 @@ VoiceTrust results may include:
 ## Trust and execution rule
 
 Use `trust_label` for concise human rendering.
-Use `executable` and `decision` for command gating.
+Use `decision` for command gating.
 Do not treat audio quality alone as owner identity evidence.
 
 ### Trust label
@@ -67,7 +66,7 @@ Typical downgrade signals:
 
 Never call it `high` if `failure_reason` is non-null.
 
-### Executable command gate — Scheme B
+### Executable command gate
 
 For voice command execution:
 - normal execution path: `speech_duration >= 3.0`
@@ -80,9 +79,9 @@ For voice command execution:
   - `failure_reason == null`
 
 Interpretation:
-- `trust_label = high` does **not** automatically mean executable
-- `executable = true` is the authority for whether a voice command may run
-- if `executable = false`, keep transcript handling separate from command execution
+- `trust_label = high` does **not** automatically mean command approval
+- `decision = "allow_command"` is the authority for whether a voice command may run
+- `decision != "allow_command"` means keep transcript handling separate from command execution
 
 ## Human rendering
 
@@ -99,7 +98,7 @@ Do not over-claim certainty.
 - If STT succeeds and VoiceTrust fails: keep transcript, report trust as unavailable/inconclusive.
 - If VoiceTrust succeeds and STT fails: keep trust result, report transcription failure.
 - If both fail: say the audio could not be processed reliably.
-- If trust is present but `executable = false`: do not execute voice commands; ask for text confirmation or a clearer/longer sample when needed.
+- If trust is present but `decision != "allow_command"`: do not execute voice commands; ask for text confirmation or a clearer/longer sample when needed.
 
 ## First-time setup
 
