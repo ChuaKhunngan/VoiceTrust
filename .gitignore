@@ -48,3 +48,5 @@ checkpoints/
 
 # Logs
 *.log
+pyproject.toml
+Skill-VoiceTrust/runtime/pyproject.toml
