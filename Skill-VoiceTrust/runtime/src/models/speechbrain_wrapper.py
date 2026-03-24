@@ -48,6 +48,13 @@ class SpeechBrainSpeakerVerifier:
     LOCAL_MODEL_DIRS = {
         "ecapa_voxceleb": Path(__file__).resolve().parent.parent.parent / "assets" / "models" / "ecapa_voxceleb",
     }
+    REQUIRED_MODEL_FILES = [
+        "hyperparams.yaml",
+        "classifier.ckpt",
+        "embedding_model.ckpt",
+        "label_encoder.ckpt",
+        "mean_var_norm_emb.ckpt",
+    ]
 
     def __init__(
         self,
@@ -77,7 +84,17 @@ class SpeechBrainSpeakerVerifier:
             raise ValueError(f"Unsupported local speaker model: {model_name}")
         if not self.savedir.exists():
             raise FileNotFoundError(
-                f"Local SpeechBrain model assets not found: {self.savedir}"
+                f"Local SpeechBrain model asset directory not found: {self.savedir}\n"
+                f"Prepare the local assets first with: python ../scripts/ensure_models.py"
+            )
+
+        missing = [name for name in self.REQUIRED_MODEL_FILES if not (self.savedir / name).exists()]
+        if missing:
+            raise FileNotFoundError(
+                "Local SpeechBrain model assets are incomplete.\n"
+                f"Missing: {', '.join(missing)}\n"
+                f"Model dir: {self.savedir}\n"
+                f"Run: python ../scripts/ensure_models.py"
             )
 
         print(f"Loading local speaker verification model: {self.savedir}")

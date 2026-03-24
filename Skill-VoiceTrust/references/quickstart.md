@@ -1,7 +1,7 @@
 # VoiceTrust Quickstart
 
 This guide is for the **first time** you set up VoiceTrust after downloading the `Skill-VoiceTrust/` package.
-It explains how to register the local usage convention, prepare the runtime, collect the owner audio, enroll the owner voiceprint, and verify that the skill is ready for normal use.
+It explains how to register the local usage convention, prepare the runtime, collect the owner audio, prepare the local model assets, enroll the owner voiceprint, and verify that the skill is ready for normal use.
 
 For normal day-to-day use, you should not need this file.
 
@@ -16,10 +16,14 @@ Relevant paths in this package:
 - `SKILL.md`
 - `references/quickstart.md`
 - `scripts/demo.py`
+- `scripts/ensure_models.py`
 - `runtime/`
 
 The actual VoiceTrust runtime lives under `runtime/`.
-The runtime bundle includes its own `src/` and local model assets under `runtime/assets/models/`, so it can be prepared independently.
+The publishable skill bundle intentionally stays lightweight:
+- source code and setup docs are included
+- large SpeechBrain checkpoint files are **not** bundled into the ClawHub package
+- owner enrollment data is **local-only** and should never be distributed
 
 ---
 
@@ -115,7 +119,52 @@ uv pip install --python .venv/bin/python torchcodec
 
 ---
 
-## 6. Verify that the runtime starts
+## 6. Prepare the local model assets
+
+The ClawHub package does **not** include the large SpeechBrain checkpoint files.
+Before enrollment or verification, run:
+
+```bash
+uv run --python .venv/bin/python ../scripts/ensure_models.py
+```
+
+By default, `ensure_models.py` will:
+- check whether required local files already exist
+- download any missing files from:
+
+```text
+https://raw.githubusercontent.com/ChuaKhunngan/VoiceTrust/main/assets/models/ecapa_voxceleb/
+```
+
+Expected model directory:
+
+```text
+runtime/assets/models/ecapa_voxceleb/
+```
+
+Required files:
+- `hyperparams.yaml`
+- `classifier.ckpt`
+- `embedding_model.ckpt`
+- `label_encoder.ckpt`
+- `mean_var_norm_emb.ckpt`
+
+Useful variants:
+
+```bash
+# only inspect status; do not download
+uv run --python .venv/bin/python ../scripts/ensure_models.py --check-only
+
+# machine-readable output
+uv run --python .venv/bin/python ../scripts/ensure_models.py --json
+
+# force re-download all required files
+uv run --python .venv/bin/python ../scripts/ensure_models.py --force
+```
+
+---
+
+## 7. Verify that the runtime starts
 
 Run a basic speaker listing command:
 
@@ -127,7 +176,7 @@ If this is the first setup, it is normal to see that no enrolled speaker exists 
 
 ---
 
-## 7. Enroll the owner voiceprint
+## 8. Enroll the owner voiceprint
 
 Once the owner audio is ready, enroll it under a single `speaker_id`.
 
@@ -169,9 +218,12 @@ This will create owner-profile data under:
 data/owners/owner/
 ```
 
+This data is local runtime state.
+Do not publish it.
+
 ---
 
-## 8. Confirm enrollment state
+## 9. Confirm enrollment state
 
 After enrollment, confirm that the owner profile exists:
 
@@ -188,7 +240,7 @@ Owner profiles:
 
 ---
 
-## 9. Run a real verification test
+## 10. Run a real verification test
 
 Pick a voice sample that should match the enrolled owner and run:
 
@@ -218,7 +270,7 @@ At this stage, the important thing is that:
 
 ---
 
-## 10. Understand the current trust rule
+## 11. Understand the current trust rule
 
 Current mainline formula:
 
@@ -238,7 +290,86 @@ Practical downgrades:
 
 ---
 
-## 11. How to use VoiceTrust in normal operation
+## 12. How to use VoiceTrust in normal operation
+
+Once setup is complete, the normal pattern is simple:
+
+1. a voice message arrives
+2. run **STT** to get the content
+3. run **VoiceTrust** on the same audio file
+4. merge both results before replying
+
+VoiceTrust is the trust side of the workflow.
+It does **not** replace STT.
+
+Typical VoiceTrust command shape during normal use:
+
+```bash
+cd runtime
+uv run --python .venv/bin/python ../scripts/demo.py \
+  --audio /path/to/incoming_audio.ogg \
+  --speaker owner \
+  --json
+```
+
+```text
+Owner profiles:
+  - owner
+```
+
+---
+
+## 10. Run a real verification test
+
+Pick a voice sample that should match the enrolled owner and run:
+
+```bash
+uv run --python .venv/bin/python ../scripts/demo.py \
+  --audio /path/to/test_audio.wav \
+  --speaker owner \
+  --json
+```
+
+Expected output fields include:
+- `speaker_match`
+- `audio_quality`
+- `overall_trust`
+- `confidence`
+- `speaker_id`
+- `speech_duration`
+- `speech_ratio`
+- `vad_status`
+- `failure_reason`
+- `raw_scores.speaker_similarity`
+
+At this stage, the important thing is that:
+- the command runs successfully
+- a JSON object is returned
+- the result looks reasonable for a matching owner sample
+
+---
+
+## 11. Understand the current trust rule
+
+Current mainline formula:
+
+```text
+overall_trust = 0.75 * speaker_match + 0.25 * audio_quality
+```
+
+Current label guidance:
+- **high**: `overall_trust >= 80` and `confidence >= 70` and `failure_reason == null`
+- **medium**: `overall_trust >= 60` and `confidence >= 50` and no hard failure
+- **low**: everything else
+
+Practical downgrades:
+- downgrade one level if `vad_status != "ok"`
+- downgrade one level if `speech_duration < 2.0`
+- downgrade one level if `speech_ratio < 0.35`
+
+---
+
+## 12. How to use VoiceTrust in normal operation
 
 Once setup is complete, the normal pattern is simple:
 

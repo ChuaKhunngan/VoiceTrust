@@ -16,6 +16,16 @@ Normal use:
 Do not use this skill to define machine-specific commands.
 Local commands and local routing belong elsewhere.
 
+## Runtime packaging note
+
+This ClawHub-friendly skill bundle is intentionally lightweight:
+- source code and setup docs are included
+- large model checkpoint files are **not** bundled
+- enrolled owner data is **local runtime state** and must not be published
+
+If VoiceTrust initialization fails because model assets are missing, read:
+- `references/quickstart.md`
+
 ## Output fields
 
 VoiceTrust results may include:
