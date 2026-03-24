@@ -34,7 +34,6 @@ class TrustScore:
     confidence: float
     identity_score: float = -1.0
     trust_label: str = "low"
-    executable: bool = False
     decision: str = "reject_command"
     decision_reasons: List[str] = field(default_factory=list)
     speaker_id: Optional[str] = None
@@ -52,7 +51,6 @@ class TrustScore:
             "confidence": self.confidence,
             "identity_score": self.identity_score,
             "trust_label": self.trust_label,
-            "executable": self.executable,
             "decision": self.decision,
             "decision_reasons": self.decision_reasons,
             "speaker_id": self.speaker_id,
@@ -128,7 +126,7 @@ class VoiceTrustPipeline:
             speaker_match = -1.0
             raw_speaker_score = 0.0
 
-        overall_trust, confidence, identity_score, trust_label, executable, decision, decision_reasons = self._compute_trust_decision(
+        overall_trust, confidence, identity_score, trust_label, decision, decision_reasons = self._compute_trust_decision(
             speaker_match=speaker_match,
             audio_quality=audio_quality,
             speech_duration=speech_duration,
@@ -144,7 +142,6 @@ class VoiceTrustPipeline:
             confidence=confidence,
             identity_score=identity_score,
             trust_label=trust_label,
-            executable=executable,
             decision=decision,
             decision_reasons=decision_reasons,
             speaker_id=speaker_id,
@@ -261,7 +258,7 @@ class VoiceTrustPipeline:
         speech_ratio: float,
         vad_status: str,
         failure_reason: Optional[str],
-    ) -> Tuple[float, float, float, str, bool, str, List[str]]:
+    ) -> Tuple[float, float, float, str, str, List[str]]:
         decision_reasons: List[str] = []
 
         if speaker_match < 0:
@@ -325,10 +322,8 @@ class VoiceTrustPipeline:
             and confidence >= 80.0
             and identity_score >= 82.0
         ):
-            executable = True
             decision = "allow_command"
         else:
-            executable = False
             decision = "reject_command"
 
         if speaker_match >= 0 and identity_score >= 85.0 and confidence >= 80.0 and failure_reason is None:
@@ -338,10 +333,10 @@ class VoiceTrustPipeline:
         else:
             trust_label = "low"
 
-        if not decision_reasons and executable:
+        if not decision_reasons and decision == "allow_command":
             decision_reasons.append("meets_execution_threshold")
 
-        return overall_trust, confidence, identity_score, trust_label, executable, decision, decision_reasons
+        return overall_trust, confidence, identity_score, trust_label, decision, decision_reasons
 
     def enroll_speaker(self, speaker_id: str, audio_path: str) -> np.ndarray:
         if self.speaker_verifier is None:
