@@ -23,9 +23,6 @@ This ClawHub-friendly skill bundle is intentionally lightweight:
 - large model checkpoint files are **not** bundled
 - enrolled owner data is **local runtime state** and must not be published
 
-Core audio loading no longer depends on `torchcodec` as the primary path.
-The runtime now prefers stable local decode (`soundfile`) and falls back to local `ffmpeg` when needed.
-
 If VoiceTrust initialization fails because model assets are missing, read:
 - `references/quickstart.md`
 
