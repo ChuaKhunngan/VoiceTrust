@@ -1,11 +1,15 @@
 """Utility functions for voice trust."""
-import torch
-import numpy as np
-import yaml
+import io
 import json
 import logging
+import subprocess
 from pathlib import Path
-from typing import Dict, Any
+from typing import Dict, Any, Tuple
+
+import numpy as np
+import torch
+import yaml
+import soundfile as sf
 
 
 def setup_logging(log_level: str = "INFO") -> logging.Logger:
@@ -33,19 +37,16 @@ def compute_eer(
     scores: np.ndarray, labels: np.ndarray
 ) -> tuple:
     """Compute Equal Error Rate."""
-    # Sort by scores
     sorted_indices = np.argsort(scores)
     sorted_scores = scores[sorted_indices]
     sorted_labels = labels[sorted_indices]
 
-    # Compute FPR and FNR at each threshold
     n_positive = np.sum(labels == 1)
     n_negative = np.sum(labels == 0)
 
     fnrs = np.cumsum(sorted_labels) / n_positive
     fprs = 1 - np.cumsum(1 - sorted_labels) / n_negative
 
-    # Find EER
     eer_idx = np.argmin(np.abs(fnrs - fprs))
     eer = (fnrs[eer_idx] + fprs[eer_idx]) / 2
     threshold = sorted_scores[eer_idx]
@@ -61,7 +62,6 @@ def compute_tDCF(
     c_fa: float = 1.0,
 ) -> float:
     """Compute normalized tandem detection cost function."""
-    # Find threshold that minimizes t-DCF
     thresholds = np.linspace(scores.min(), scores.max(), 1000)
     min_tdcf = float("inf")
 
@@ -114,3 +114,66 @@ def ensure_dir(path: str) -> Path:
     path = Path(path)
     path.mkdir(parents=True, exist_ok=True)
     return path
+
+
+def _load_audio_with_soundfile(audio_path: str) -> Tuple[np.ndarray, int]:
+    data, sample_rate = sf.read(audio_path, always_2d=False)
+    if isinstance(data, tuple):
+        raise RuntimeError("Unexpected soundfile output tuple")
+    data = np.asarray(data, dtype=np.float32)
+    return data, sample_rate
+
+
+def _load_audio_with_ffmpeg(audio_path: str, sample_rate: int) -> np.ndarray:
+    cmd = [
+        "/opt/homebrew/bin/ffmpeg",
+        "-v",
+        "error",
+        "-i",
+        audio_path,
+        "-f",
+        "wav",
+        "-ac",
+        "1",
+        "-ar",
+        str(sample_rate),
+        "pipe:1",
+    ]
+    proc = subprocess.run(cmd, stdout=subprocess.PIPE, stderr=subprocess.PIPE, check=True)
+    with sf.SoundFile(io.BytesIO(proc.stdout)) as f:
+        data = f.read(dtype="float32", always_2d=False)
+        return np.asarray(data, dtype=np.float32)
+
+
+def load_audio_waveform(audio_path: str, target_sample_rate: int = 16000) -> Tuple[torch.Tensor, int]:
+    """Stable audio loader that avoids torchaudio/torchcodec runtime fragility.
+
+    Strategy:
+    1. Try soundfile directly.
+    2. If unsupported or decode fails, fall back to ffmpeg -> wav pipe.
+    3. Convert to mono and resample with librosa when needed.
+    """
+    try:
+        waveform_np, sample_rate = _load_audio_with_soundfile(audio_path)
+    except Exception:
+        waveform_np = _load_audio_with_ffmpeg(audio_path, target_sample_rate)
+        sample_rate = target_sample_rate
+
+    if waveform_np.ndim == 2:
+        waveform_np = waveform_np.mean(axis=1)
+
+    if sample_rate != target_sample_rate:
+        import librosa
+        waveform_np = librosa.resample(
+            waveform_np,
+            orig_sr=sample_rate,
+            target_sr=target_sample_rate,
+        )
+        sample_rate = target_sample_rate
+
+    waveform_np = np.asarray(waveform_np, dtype=np.float32)
+    if waveform_np.ndim != 1:
+        waveform_np = waveform_np.reshape(-1)
+
+    waveform = torch.from_numpy(waveform_np).unsqueeze(0)
+    return waveform, sample_rate
