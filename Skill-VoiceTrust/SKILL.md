@@ -82,6 +82,8 @@ Interpretation:
 - `trust_label = high` does **not** automatically mean command approval
 - `decision = "allow_command"` is the authority for whether a voice command may run
 - `decision != "allow_command"` means keep transcript handling separate from command execution
+- `decision` is for command gating, not for blocking ordinary non-command voice replies
+- music / non-speech / non-command audio should not be treated as a voice-command candidate
 
 ## Human rendering
 
