@@ -7,8 +7,8 @@ Current mainline focuses on:
 """
 import torch
 import numpy as np
-from typing import Dict, Optional, Tuple, Any
-from dataclasses import dataclass
+from typing import Dict, Optional, Tuple, Any, List
+from dataclasses import dataclass, field
 from pathlib import Path
 import warnings
 
@@ -32,6 +32,11 @@ class TrustScore:
     audio_quality: float
     overall_trust: float
     confidence: float
+    identity_score: float = -1.0
+    trust_label: str = "low"
+    executable: bool = False
+    decision: str = "reject_command"
+    decision_reasons: List[str] = field(default_factory=list)
     speaker_id: Optional[str] = None
     speech_duration: float = 0.0
     speech_ratio: float = 0.0
@@ -45,6 +50,11 @@ class TrustScore:
             "audio_quality": self.audio_quality,
             "overall_trust": self.overall_trust,
             "confidence": self.confidence,
+            "identity_score": self.identity_score,
+            "trust_label": self.trust_label,
+            "executable": self.executable,
+            "decision": self.decision,
+            "decision_reasons": self.decision_reasons,
             "speaker_id": self.speaker_id,
             "speech_duration": self.speech_duration,
             "speech_ratio": self.speech_ratio,
@@ -75,9 +85,8 @@ class VoiceTrustPipeline:
         self.device = device
         self.sample_rate = sample_rate
         self.weights = weights or {
-            "speaker": 0.75,
-            "quality": 0.25,
-            "language": 0.0,
+            "speaker": 0.85,
+            "confidence": 0.15,
         }
         self.verification_threshold = verification_threshold
         self.preprocessor = AudioPreprocessor(target_sample_rate=sample_rate)
@@ -119,9 +128,13 @@ class VoiceTrustPipeline:
             speaker_match = -1.0
             raw_speaker_score = 0.0
 
-        overall_trust, confidence = self._compute_overall_trust(
+        overall_trust, confidence, identity_score, trust_label, executable, decision, decision_reasons = self._compute_trust_decision(
             speaker_match=speaker_match,
             audio_quality=audio_quality,
+            speech_duration=speech_duration,
+            speech_ratio=speech_ratio,
+            vad_status=vad_status,
+            failure_reason=failure_reason,
         )
 
         return TrustScore(
@@ -129,6 +142,11 @@ class VoiceTrustPipeline:
             audio_quality=audio_quality,
             overall_trust=overall_trust,
             confidence=confidence,
+            identity_score=identity_score,
+            trust_label=trust_label,
+            executable=executable,
+            decision=decision,
+            decision_reasons=decision_reasons,
             speaker_id=speaker_id,
             speech_duration=speech_duration,
             speech_ratio=speech_ratio,
@@ -235,24 +253,89 @@ class VoiceTrustPipeline:
             return 50.0, None, 0.0
         return 50.0, expected_language, 0.25
 
-    def _compute_overall_trust(
+    def _compute_trust_decision(
         self,
         speaker_match: float,
         audio_quality: float,
-    ) -> Tuple[float, float]:
-        if speaker_match >= 0:
-            overall = (
-                self.weights["speaker"] * speaker_match
-                + self.weights["quality"] * audio_quality
-            )
-            scores = [speaker_match, audio_quality]
-        else:
-            overall = audio_quality
-            scores = [audio_quality]
+        speech_duration: float,
+        speech_ratio: float,
+        vad_status: str,
+        failure_reason: Optional[str],
+    ) -> Tuple[float, float, float, str, bool, str, List[str]]:
+        decision_reasons: List[str] = []
 
-        variance = np.var(scores)
-        confidence = max(0.0, min(100.0, 100.0 - variance / 10))
-        return overall, confidence
+        if speaker_match < 0:
+            identity_score = 0.0
+            confidence = 0.0
+            if failure_reason is not None:
+                decision_reasons.append(failure_reason)
+            else:
+                decision_reasons.append("speaker_match_unavailable")
+        else:
+            confidence = max(0.0, min(100.0, 0.7 * speaker_match + 0.2 * audio_quality + 10.0))
+            identity_score = (
+                self.weights["speaker"] * speaker_match
+                + self.weights["confidence"] * confidence
+            )
+
+        overall_trust = identity_score
+
+        if failure_reason is not None:
+            decision_reasons.append(f"failure:{failure_reason}")
+            overall_trust -= 35.0
+
+        if vad_status != "ok":
+            decision_reasons.append("vad_not_ok")
+            overall_trust -= 25.0
+
+        if speech_duration < 2.5:
+            decision_reasons.append("short_speech")
+            overall_trust -= 15.0
+        elif speech_duration < 3.0:
+            decision_reasons.append("borderline_short_speech")
+            overall_trust -= 8.0
+
+        if speech_ratio < 0.35:
+            decision_reasons.append("low_speech_ratio")
+            overall_trust -= 10.0
+        elif speech_ratio < 0.45:
+            decision_reasons.append("borderline_speech_ratio")
+            overall_trust -= 5.0
+
+        if speaker_match >= 0 and speaker_match < 70.0:
+            decision_reasons.append("speaker_match_below_owner_threshold")
+            overall_trust -= 18.0
+        if confidence < 75.0:
+            decision_reasons.append("confidence_below_execution_threshold")
+            overall_trust -= 12.0
+
+        overall_trust = max(0.0, min(100.0, overall_trust))
+
+        if (
+            failure_reason is None
+            and vad_status == "ok"
+            and speech_duration >= 3.0
+            and speaker_match >= 78.0
+            and confidence >= 80.0
+            and identity_score >= 82.0
+        ):
+            executable = True
+            decision = "allow_command"
+        else:
+            executable = False
+            decision = "reject_command"
+
+        if speaker_match >= 0 and identity_score >= 85.0 and confidence >= 80.0 and failure_reason is None:
+            trust_label = "high"
+        elif speaker_match >= 0 and identity_score >= 72.0 and confidence >= 68.0 and failure_reason is None:
+            trust_label = "medium"
+        else:
+            trust_label = "low"
+
+        if not decision_reasons and executable:
+            decision_reasons.append("meets_execution_threshold")
+
+        return overall_trust, confidence, identity_score, trust_label, executable, decision, decision_reasons
 
     def enroll_speaker(self, speaker_id: str, audio_path: str) -> np.ndarray:
         if self.speaker_verifier is None:

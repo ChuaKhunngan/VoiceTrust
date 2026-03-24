@@ -101,26 +101,27 @@ def print_result(result: TrustScore):
     else:
         print(f"  Speaker Verification:  Not checked")
     print(f"  Audio Quality:         {result.audio_quality:6.2f}")
-    print(f"  Language Consistency:  {result.language_consistency:6.2f}")
+    print(f"  Identity Score:        {result.identity_score:6.2f}")
     print()
 
-    trust_level = "HIGH" if result.overall_trust >= 70 else \
-                  "MEDIUM" if result.overall_trust >= 40 else "LOW"
-
-    print(f"Overall Trust Score: {result.overall_trust:.2f} ({trust_level})")
+    print(f"Overall Trust Score: {result.overall_trust:.2f} ({result.trust_label.upper()})")
     print(f"Confidence: {result.confidence:.2f}")
+    print(f"Executable: {'YES' if result.executable else 'NO'}")
+    print(f"Decision: {result.decision}")
     print(f"Speech Duration: {result.speech_duration:.2f}s")
     print(f"Speech Ratio: {result.speech_ratio:.3f}")
     print(f"VAD Status: {result.vad_status}")
-    if result.detected_language is not None:
-        print(f"Detected Language: {result.detected_language} ({result.language_confidence:.2f})")
     if result.failure_reason is not None:
         print(f"Failure Reason: {result.failure_reason}")
+    if result.decision_reasons:
+        print("Decision Reasons:")
+        for reason in result.decision_reasons:
+            print(f"  - {reason}")
     print()
 
     print("-" * 60)
     if result.speaker_id and result.speaker_match >= 0:
-        match_status = "MATCH" if result.speaker_match >= 50 else "NO MATCH"
+        match_status = "MATCH" if result.speaker_match >= 78 else "NO MATCH"
         print(f"Speaker Verification ({result.speaker_id}): {match_status}")
         print(f"  Similarity Score: {result.raw_speaker_score:.3f}")
     print("-" * 60)
@@ -433,18 +434,18 @@ def main():
 
             # Recommendations
             print("RECOMMENDATIONS:")
-            if result.overall_trust < 40:
-                print("  - This message shows signs of manipulation")
-                print("  - Recommend additional verification")
-                print("  - DO NOT TRUST this message")
-            elif result.overall_trust < 70:
-                print("  - Some anomalies detected")
-                print("  - Review with caution")
-                print("  - Consider secondary verification")
+            if result.executable:
+                print("  - Owner verification passed at executable level")
+                print("  - Command-capable trust threshold met")
+                print("  - Safe to use for voice command execution")
+            elif result.trust_label == "medium":
+                print("  - Partial owner similarity detected")
+                print("  - Keep transcript, but require secondary confirmation for commands")
+                print("  - Not safe for automatic command execution")
             else:
-                print("  - No significant issues detected")
-                print("  - Message appears authentic")
-                print("  - Safe to trust")
+                print("  - Owner verification insufficient")
+                print("  - Do not execute voice commands from this sample")
+                print("  - Ask for text confirmation or a longer clearer voice sample")
             print()
 
     except Exception as e:
