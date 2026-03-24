@@ -1,6 +1,8 @@
 # VoiceTrust Quickstart
 
-This guide is for the **first time** you set up VoiceTrust after downloading the `Skill-VoiceTrust/` package.
+This guide is for the first time you set up VoiceTrust after unpacking `VoiceTrust.zip`.
+After extraction, the package root should be `VoiceTrust/`.
+
 It explains how to register the local usage convention, prepare the runtime, collect the owner audio, prepare the local model assets, enroll the owner voiceprint, and verify that the skill is ready for normal use.
 
 For normal day-to-day use, you should not need this file.
@@ -9,7 +11,7 @@ For normal day-to-day use, you should not need this file.
 
 ## Package layout
 
-This quickstart assumes you are already inside the `Skill-VoiceTrust/` directory.
+This quickstart assumes you are already inside the `VoiceTrust/` directory.
 
 Relevant paths in this package:
 
@@ -20,38 +22,37 @@ Relevant paths in this package:
 - `runtime/`
 
 The actual VoiceTrust runtime lives under `runtime/`.
-The publishable skill bundle intentionally stays lightweight:
+The package intentionally stays lightweight:
 - source code and setup docs are included
-- large SpeechBrain checkpoint files are **not** bundled into the ClawHub package
-- owner enrollment data is **local-only** and should never be distributed
+- large SpeechBrain checkpoint files are not bundled
+- owner enrollment data is local-only and should never be distributed
 
 ---
 
 ## Runtime note
 
-VoiceTrust now uses an owner-focused scoring model and a command-gating decision model:
+VoiceTrust uses an owner-focused scoring model and a command-gating decision model:
 - `speaker_match` is the primary identity signal
 - `confidence` is a derived stability signal
 - `identity_score` summarizes owner similarity
-- `overall_trust` is a penalty-adjusted trust summary kept for operator visibility
+- `overall_trust` is a penalty-adjusted trust summary for operator visibility
 - `decision` is the command-gating result
 
 For normal message handling:
-- use **STT** for content
-- use **VoiceTrust** for owner verification
-- use `decision` only for **command execution gating**, not for blocking ordinary non-command replies
+- use STT for content
+- use VoiceTrust for owner verification
+- use `decision` only for command execution gating, not for blocking ordinary non-command replies
 
 ---
 
 ## 1. Register the local voice-message convention in `TOOLS.md`
 
-Before you do runtime setup, register the local voice-handling rule in your `TOOLS.md`.
-This makes the intended day-to-day behavior explicit before enrollment and verification work begin.
+Before runtime setup, register the local voice-handling rule in `TOOLS.md`.
 
 Recommended wording:
 
 ```md
-## Incoming Incoming Voice Message
+## Incoming Voice Message
 - Do STT.
 - Also run VoiceTrust.
 - Merge both before replying.
@@ -61,23 +62,22 @@ Recommended wording:
 ```
 
 Keep this section short.
-Do not put machine-specific paths into the skill itself.
-Put local behavior conventions in `TOOLS.md`.
+Put local behavior conventions in `TOOLS.md`, not in the skill itself.
 
 ---
 
 ## 2. Collect the owner audio first
 
-Before you initialize VoiceTrust for real use, you must decide **whose voice** will be treated as the owner.
+Before real use, decide whose voice will be treated as the owner.
 VoiceTrust is not useful until the owner voiceprint is enrolled.
 
 Required preparation:
 - choose the owner identity first
-- prepare **3 to 5** owner voice samples before enrollment
-- keep all samples from the **same person**
+- prepare 3 to 5 owner voice samples before enrollment
+- keep all samples from the same person
 - prefer natural speech in the owner's usual speaking voice
 - avoid heavy background noise, music, or overlapping speakers
-- prefer clips in the rough **3-10 second** range
+- prefer clips in the rough 3-10 second range
 
 Recommended `speaker_id`:
 - `owner`
@@ -114,15 +114,61 @@ uv pip install --python .venv/bin/python -r requirements.txt
 
 ---
 
-## 6. System dependency: ffmpeg
+## 6. Install ffmpeg
 
 VoiceTrust may use local `ffmpeg` as a fallback decoder for formats that `soundfile` cannot read directly.
 Ensure `ffmpeg` is installed locally.
 
-On macOS/Homebrew:
+### macOS
+
+Homebrew:
 
 ```bash
 brew install ffmpeg
+```
+
+### Linux
+
+Debian / Ubuntu:
+
+```bash
+sudo apt update
+sudo apt install -y ffmpeg
+```
+
+Fedora:
+
+```bash
+sudo dnf install -y ffmpeg
+```
+
+Arch:
+
+```bash
+sudo pacman -S ffmpeg
+```
+
+### Windows
+
+Recommended options:
+- install via `winget`
+- or install via `choco`
+- or download a prebuilt binary and add it to `PATH`
+
+Examples:
+
+```powershell
+winget install Gyan.FFmpeg
+```
+
+```powershell
+choco install ffmpeg
+```
+
+After installation, confirm it is available:
+
+```bash
+ffmpeg -version
 ```
 
 ---
@@ -163,16 +209,20 @@ If this is the first setup, it is normal to see that no enrolled speaker exists 
 ## 9. Enroll the owner voiceprint
 
 ```bash
-uv run --python .venv/bin/python ../scripts/demo.py   --audio /path/to/owner_sample_01.wav   --speaker owner   --enroll-sample   --json
+uv run --python .venv/bin/python ../scripts/demo.py \
+  --audio /path/to/owner_sample_01.wav \
+  --speaker owner \
+  --enroll-sample \
+  --json
 ```
 
 Repeat with additional owner samples.
 
 Recommended minimum:
-- **3 samples**
+- 3 samples
 
 Recommended comfortable baseline:
-- **5 samples**
+- 5 samples
 
 This will create owner-profile data under:
 
@@ -188,7 +238,10 @@ Do not publish it.
 ## 10. Run a real verification test
 
 ```bash
-uv run --python .venv/bin/python ../scripts/demo.py   --audio /path/to/test_audio.wav   --speaker owner   --json
+uv run --python .venv/bin/python ../scripts/demo.py \
+  --audio /path/to/test_audio.wav \
+  --speaker owner \
+  --json
 ```
 
 Expected output fields include:
@@ -207,12 +260,15 @@ Expected output fields include:
 
 ---
 
-## 11. Current command-gating rule (Scheme B)
+## 11. Command gating rule
 
 For voice command execution:
-- normal path: `speech_duration >= 3.0`
-- short-voice override: allow when `speech_duration >= 1.2` and `speaker_match >= 85` and `confidence >= 85`
-- base execution gate still requires:
+- use the normal path when `speech_duration >= 3.0`
+- allow a short voice sample only when all of the following are true:
+  - `speech_duration >= 1.2`
+  - `speaker_match >= 85`
+  - `confidence >= 85`
+- in all cases, command execution still requires:
   - `speaker_match >= 78`
   - `confidence >= 80`
   - `identity_score >= 82`
@@ -229,6 +285,6 @@ Interpretation:
 ## 12. Sanity-check examples
 
 - owner-like long speech should typically produce high `identity_score` and `decision = "allow_command"`
-- short but very strong owner matches may pass through Scheme B override
+- short but very strong owner matches may still be allowed
 - music, non-speech, or non-command audio should not enter the command-execution path even if processed
 - low-trust or inconclusive command audio should not be executed
