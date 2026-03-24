@@ -3,6 +3,11 @@
 This guide is for the first time you set up VoiceTrust after unpacking `VoiceTrust.zip`.
 After extraction, the package root should be `VoiceTrust/`.
 
+Install `VoiceTrust/` into an OpenClaw skill directory.
+It may be used as either:
+- a workspace skill under `~/.openclaw/workspace/skills/VoiceTrust/`
+- a global skill under `~/.openclaw/skills/VoiceTrust/`
+
 It explains how to register the local usage convention, prepare the runtime, collect the owner audio, prepare the local model assets, enroll the owner voiceprint, and verify that the skill is ready for normal use.
 
 For normal day-to-day use, you should not need this file.
