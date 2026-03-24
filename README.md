@@ -162,10 +162,25 @@ Use this path if you are developing, testing, or modifying the project locally.
 ```bash
 uv venv .venv
 uv pip install --python .venv/bin/python -r requirements.txt
-uv pip install --python .venv/bin/python torchcodec
 ```
 
-### 2. Enroll owner samples
+### 2. Ensure local model assets are present
+
+```bash
+uv run --python .venv/bin/python Skill-VoiceTrust/scripts/ensure_models.py
+```
+
+### 3. Ensure ffmpeg is available
+
+VoiceTrust may use local `ffmpeg` as a fallback decoder when direct audio decode is unavailable.
+
+On macOS/Homebrew:
+
+```bash
+brew install ffmpeg
+```
+
+### 4. Enroll owner samples
 
 Use **3 to 5** clean voice samples from the same person.
 
@@ -179,7 +194,7 @@ uv run --python .venv/bin/python scripts/demo.py \
 
 Repeat with additional owner samples.
 
-### 3. Check enrolled owners
+### 5. Check enrolled owners
 
 ```bash
 uv run --python .venv/bin/python scripts/demo.py --list-speakers
@@ -192,7 +207,7 @@ Owner profiles:
   - owner
 ```
 
-### 4. Verify a voice message
+### 6. Verify a voice message
 
 ```bash
 uv run --python .venv/bin/python scripts/demo.py \
