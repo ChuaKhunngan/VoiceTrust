@@ -51,7 +51,7 @@ This makes the intended day-to-day behavior explicit before enrollment and verif
 Recommended wording:
 
 ```md
-## 🗣️ Incoming Voice Message
+## Incoming Incoming Voice Message
 - Do STT.
 - Also run VoiceTrust.
 - Merge both before replying.
@@ -75,9 +75,9 @@ Required preparation:
 - choose the owner identity first
 - prepare **3 to 5** owner voice samples before enrollment
 - keep all samples from the **same person**
-- prefer natural speech in the owner’s usual speaking voice
+- prefer natural speech in the owner's usual speaking voice
 - avoid heavy background noise, music, or overlapping speakers
-- prefer clips in the rough **3–10 second** range
+- prefer clips in the rough **3-10 second** range
 
 Recommended `speaker_id`:
 - `owner`

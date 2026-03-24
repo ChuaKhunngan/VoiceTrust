@@ -89,7 +89,7 @@ Interpretation:
 
 Preferred compact rendering:
 - `Voice trust: high / medium / low`
-- `Details: match <x> · trust <y> · confidence <z> · identity <i> · quality <q>`
+- `Details: match <x> - trust <y> - confidence <z> - identity <i> - quality <q>`
 - if relevant: `Decision: allow_command / reject_command`
 
 If degraded, say why briefly using `decision_reasons`.

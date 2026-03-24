@@ -22,7 +22,7 @@ This makes it useful for voice workflows where messages are not just content, bu
 ## End-to-End Voice Message Flow
 
 The diagram below shows the intended OpenClaw workflow after a voice message is received from a channel.
-This is not a code-structure diagram — it is the operational flow of how STT and VoiceTrust work together.
+This is not a code-structure diagram -- it is the operational flow of how STT and VoiceTrust work together.
 
 ```mermaid
 flowchart TD
@@ -71,8 +71,8 @@ flowchart TD
 ```
 
 In short:
-- **STT** answers: “What was said?”
-- **VoiceTrust** answers: “Who likely said it, and how confident are we?”
+- **STT** answers: "What was said?"
+- **VoiceTrust** answers: "Who likely said it, and how confident are we?"
 - OpenClaw should use **both** before replying or acting on voice input.
 - VoiceTrust itself stays **STT-independent** and compatible with different OpenClaw transcription paths.
 
@@ -141,9 +141,9 @@ For normal OpenClaw usage, the intended path is to use the packaged skill from a
 5. After it is placed correctly, tell the agent to start using **VoiceTrust**
 
 Practical example of what to tell the agent:
-- “Start using VoiceTrust for incoming voice messages.”
-- “Use VoiceTrust on this audio.”
-- “Treat VoiceTrust as the trust layer for voice handling.”
+- "Start using VoiceTrust for incoming voice messages."
+- "Use VoiceTrust on this audio."
+- "Treat VoiceTrust as the trust layer for voice handling."
 
 In normal OpenClaw use, the agent should:
 - load the skill when voice-trust handling is needed
@@ -222,27 +222,27 @@ uv run --python .venv/bin/python scripts/demo.py \
 
 ```text
 VoiceTrust/
-├── README.md
-├── LICENSE
-├── pyproject.toml
-├── requirements.txt
-├── configs/
-├── assets/models/
-├── scripts/demo.py
-├── src/
-├── docs/
-├── archive/
-└── Skill-VoiceTrust/
+|--- README.md
+|--- LICENSE
+|--- pyproject.toml
+|--- requirements.txt
+|--- configs/
+|--- assets/models/
+|--- scripts/demo.py
+|--- src/
+|--- docs/
+|--- archive/
+`--- Skill-VoiceTrust/
 ```
 
 Main parts:
-- `scripts/demo.py` — local CLI/demo entrypoint
-- `src/` — core runtime logic
-- `configs/` — current runtime config
-- `assets/models/` — local model assets used by the project
-- `docs/` — project notes and public-facing documentation
-- `archive/` — historical materials not needed for normal use
-- `Skill-VoiceTrust/` — portable skill bundle for OpenClaw-style use
+- `scripts/demo.py` -- local CLI/demo entrypoint
+- `src/` -- core runtime logic
+- `configs/` -- current runtime config
+- `assets/models/` -- local model assets used by the project
+- `docs/` -- project notes and public-facing documentation
+- `archive/` -- historical materials not needed for normal use
+- `Skill-VoiceTrust/` -- portable skill bundle for OpenClaw-style use
 
 ---
 
@@ -266,13 +266,13 @@ separate from the full project repository.
 VoiceTrust builds on open-source speaker verification components from the SpeechBrain ecosystem.
 
 This project uses pretrained assets derived from:
-- **SpeechBrain** — https://github.com/speechbrain/speechbrain
-- **speechbrain/spkrec-ecapa-voxceleb** — upstream pretrained speaker-recognition model referenced by the bundled assets
+- **SpeechBrain** -- https://github.com/speechbrain/speechbrain
+- **speechbrain/spkrec-ecapa-voxceleb** -- upstream pretrained speaker-recognition model referenced by the bundled assets
 
 The included ECAPA-based weights and related files are upstream pretrained components, not original VoiceTrust model-training outputs.
 
 When redistributing this project or its packaged skill bundle, keep:
-- this repository’s own `LICENSE`
+- this repository's own `LICENSE`
 - required upstream license / notice information for bundled third-party assets
 - clear attribution to SpeechBrain and the upstream pretrained model source
 
