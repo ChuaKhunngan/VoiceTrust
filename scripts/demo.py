@@ -6,17 +6,20 @@ Analyze audio files for deepfake detection and trust scoring.
 Optimized for Chinese/English voice messages.
 
 Usage:
+    # Check local model assets first
+    uv run --python .venv/bin/python ../scripts/ensure_models.py
+
     # Analyze without speaker verification
-    python demo.py --audio sample.wav
+    uv run --python .venv/bin/python ../scripts/demo.py --audio sample.wav
 
     # Enroll a speaker
-    python demo.py --audio enrollment.wav --speaker owner --enroll
+    uv run --python .venv/bin/python ../scripts/demo.py --audio enrollment.wav --speaker owner --enroll
 
     # Verify a speaker
-    python demo.py --audio message.wav --speaker owner
+    uv run --python .venv/bin/python ../scripts/demo.py --audio message.wav --speaker owner
 
     # Create test audio
-    python demo.py --create-demo test.wav
+    uv run --python .venv/bin/python ../scripts/demo.py --create-demo test.wav
 """
 import argparse
 import sys
@@ -24,8 +27,11 @@ import os
 import json
 from pathlib import Path
 
-# Add src to path
-sys.path.insert(0, str(Path(__file__).parent.parent / "src"))
+PACKAGE_ROOT = Path(__file__).resolve().parent.parent
+RUNTIME_ROOT = PACKAGE_ROOT / "runtime"
+
+# Add runtime src to path
+sys.path.insert(0, str(RUNTIME_ROOT / "src"))
 
 import torch
 import numpy as np
@@ -36,13 +42,21 @@ try:
 except ImportError as e:
     print(f"Error importing VoiceTrust: {e}")
     print("\nPlease install dependencies:")
-    print("  pip install -r requirements.txt")
+    print("  uv pip install --python .venv/bin/python -r requirements.txt")
     SPEECHBRAIN_AVAILABLE = False
 
 
 # Default storage
-VOICEPRINT_DIR = Path(__file__).parent.parent / "data" / "voiceprints"
-OWNER_PROFILE_DIR = Path(__file__).parent.parent / "data" / "owners"
+VOICEPRINT_DIR = RUNTIME_ROOT / "data" / "voiceprints"
+OWNER_PROFILE_DIR = RUNTIME_ROOT / "data" / "owners"
+MODEL_DIR = RUNTIME_ROOT / "assets" / "models" / "ecapa_voxceleb"
+REQUIRED_MODEL_FILES = [
+    "hyperparams.yaml",
+    "classifier.ckpt",
+    "embedding_model.ckpt",
+    "label_encoder.ckpt",
+    "mean_var_norm_emb.ckpt",
+]
 
 
 def print_banner():
@@ -53,6 +67,25 @@ def print_banner():
     print("  Powered by SpeechBrain Pre-trained Models")
     print("=" * 60)
     print()
+
+
+def ensure_model_assets() -> bool:
+    missing = [name for name in REQUIRED_MODEL_FILES if not (MODEL_DIR / name).exists()]
+    if not missing:
+        return True
+
+    print("VoiceTrust model assets are missing.")
+    print(f"Expected directory: {MODEL_DIR}")
+    print("Missing files:")
+    for name in missing:
+        print(f"  - {name}")
+    print()
+    print("This lightweight skill bundle does not include large checkpoint files.")
+    print("Prepare the model assets first, then re-run this command:")
+    print("  cd runtime")
+    print("  uv run --python .venv/bin/python ../scripts/ensure_models.py")
+    print()
+    return False
 
 
 def print_result(result: TrustScore):
@@ -234,7 +267,12 @@ def main():
         print("Error: SpeechBrain not available. Please install dependencies.")
         sys.exit(1)
 
-    # Handle list speakers
+    # Create demo audio if requested
+    if args.create_demo:
+        create_demo_audio(args.create_demo)
+        return
+
+    # Handle list speakers without requiring model checkpoints
     if args.list_speakers:
         listing = list_enrolled_speakers()
         owner_profiles = listing["owner_profiles"]
@@ -252,7 +290,7 @@ def main():
             print("No enrolled speakers found.")
         return
 
-    # Handle clear speaker
+    # Handle clear speaker without requiring model checkpoints
     if args.clear_speaker:
         voiceprint_path = VOICEPRINT_DIR / f"{args.clear_speaker}.npy"
         if voiceprint_path.exists():
@@ -262,10 +300,9 @@ def main():
             print(f"Speaker '{args.clear_speaker}' not found.")
         return
 
-    # Create demo audio if requested
-    if args.create_demo:
-        create_demo_audio(args.create_demo)
-        return
+    # Any real VoiceTrust runtime action below this point needs local model assets
+    if not ensure_model_assets():
+        sys.exit(2)
 
     # Check audio file
     if not args.audio:
@@ -291,7 +328,7 @@ def main():
     try:
         if not args.json:
             print(f"Initializing pipeline on {device}...")
-            print("Note: Models will be downloaded on first run (may take a few minutes)")
+            print("Note: local model assets must already be prepared before first use")
             print()
 
         pipeline = VoiceTrustPipeline(
