@@ -311,10 +311,16 @@ class VoiceTrustPipeline:
 
         overall_trust = max(0.0, min(100.0, overall_trust))
 
+        short_high_confidence_override = (
+            speech_duration >= 1.2
+            and speaker_match >= 85.0
+            and confidence >= 85.0
+        )
+
         if (
             failure_reason is None
             and vad_status == "ok"
-            and speech_duration >= 3.0
+            and (speech_duration >= 3.0 or short_high_confidence_override)
             and speaker_match >= 78.0
             and confidence >= 80.0
             and identity_score >= 82.0
