@@ -33,6 +33,11 @@ VoiceTrust results may include:
 - `audio_quality`
 - `overall_trust`
 - `confidence`
+- `identity_score`
+- `trust_label`
+- `executable`
+- `decision`
+- `decision_reasons`
 - `speaker_id`
 - `speech_duration`
 - `speech_ratio`
@@ -40,28 +45,53 @@ VoiceTrust results may include:
 - `failure_reason`
 - `raw_scores.speaker_similarity`
 
-## Trust label rule
+## Trust and execution rule
 
-Use `overall_trust` as the main label driver and `confidence` as a check.
+Use `trust_label` for concise human rendering.
+Use `executable` and `decision` for command gating.
+Do not treat audio quality alone as owner identity evidence.
 
-- **high**: `overall_trust >= 80` and `confidence >= 70` and `failure_reason == null`
-- **medium**: `overall_trust >= 60` and `confidence >= 50` and no hard failure
+### Trust label
+
+Use owner-focused scoring:
+- **high**: `identity_score >= 85` and `confidence >= 80` and `failure_reason == null`
+- **medium**: `identity_score >= 72` and `confidence >= 68` and `failure_reason == null`
 - **low**: everything else
 
-Downgrade one level if:
+Typical downgrade signals:
 - `vad_status != "ok"`
-- `speech_duration < 2.0`
-- `speech_ratio < 0.35`
+- `speech_duration < 2.5`
+- `speech_ratio < 0.45`
+- `speaker_match < 70`
+- `failure_reason != null`
 
 Never call it `high` if `failure_reason` is non-null.
+
+### Executable command gate — Scheme B
+
+For voice command execution:
+- normal execution path: `speech_duration >= 3.0`
+- short-voice override: allow `speech_duration >= 1.2` only when `speaker_match >= 85` and `confidence >= 85`
+- base execution gate still requires all of the following:
+  - `speaker_match >= 78`
+  - `confidence >= 80`
+  - `identity_score >= 82`
+  - `vad_status == "ok"`
+  - `failure_reason == null`
+
+Interpretation:
+- `trust_label = high` does **not** automatically mean executable
+- `executable = true` is the authority for whether a voice command may run
+- if `executable = false`, keep transcript handling separate from command execution
 
 ## Human rendering
 
 Preferred compact rendering:
 - `Voice trust: high / medium / low`
-- `Details: match <x> · trust <y> · confidence <z> · quality <q>`
+- `Details: match <x> · trust <y> · confidence <z> · identity <i> · quality <q>`
+- if relevant: `Decision: allow_command / reject_command`
 
-If degraded, say why briefly.
+If degraded, say why briefly using `decision_reasons`.
 Do not over-claim certainty.
 
 ## Failure handling
@@ -69,6 +99,7 @@ Do not over-claim certainty.
 - If STT succeeds and VoiceTrust fails: keep transcript, report trust as unavailable/inconclusive.
 - If VoiceTrust succeeds and STT fails: keep trust result, report transcription failure.
 - If both fail: say the audio could not be processed reliably.
+- If trust is present but `executable = false`: do not execute voice commands; ask for text confirmation or a clearer/longer sample when needed.
 
 ## First-time setup
 
@@ -76,11 +107,3 @@ For first-time environment setup, local installation, enrollment, or bootstrap i
 - `references/quickstart.md`
 
 Normal voice-message handling should not need the full quickstart.
-
-## Executable command rule
-
-For voice command execution, use **Scheme B**:
-- normal execution: `speech_duration >= 3.0`
-- short-voice override: allow execution when `speech_duration >= 1.2` and `speaker_match >= 85` and `confidence >= 85`
-- base execution gate still requires: `speaker_match >= 78`, `confidence >= 80`, `identity_score >= 82`, `vad_status == "ok"`, and no `failure_reason`
-
