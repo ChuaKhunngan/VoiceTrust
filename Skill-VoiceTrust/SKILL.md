@@ -61,12 +61,15 @@ Common downgrade signals:
 - `speaker_match < 70`
 - `failure_reason != null`
 
-### Command gate: Scheme B
+### Command gating
 
 For voice command execution:
-- normal path: `speech_duration >= 3.0`
-- short-voice override: allow when `speech_duration >= 1.2` and `speaker_match >= 85` and `confidence >= 85`
-- base gate still requires:
+- use the normal path when `speech_duration >= 3.0`
+- allow a short voice sample only when all of the following are true:
+  - `speech_duration >= 1.2`
+  - `speaker_match >= 85`
+  - `confidence >= 85`
+- in all cases, command execution still requires:
   - `speaker_match >= 78`
   - `confidence >= 80`
   - `identity_score >= 82`
@@ -78,6 +81,15 @@ Interpretation:
 - `decision != "allow_command"` means do not execute commands from this sample
 - non-command voice content may still be handled normally
 - music / non-speech / non-command audio should not enter the command path
+
+CLI example:
+
+```bash
+uv run --python .venv/bin/python ../scripts/demo.py \
+  --audio /path/to/sample.ogg \
+  --speaker owner \
+  --json
+```
 
 ## Human rendering
 
