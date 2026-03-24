@@ -27,6 +27,17 @@ The publishable skill bundle intentionally stays lightweight:
 
 ---
 
+## Runtime note
+
+VoiceTrust now uses a resilient audio-loading path for core operation:
+- prefer `soundfile` when direct decode works
+- fall back to local `ffmpeg` when conversion is needed
+- normalize audio to mono 16 kHz before inference
+
+This avoids breakage from `torchaudio` / `torchcodec` backend changes after environment rebuilds.
+
+---
+
 ## 1. Register the local voice-message convention in `TOOLS.md`
 
 Before you do runtime setup, register the local voice-handling rule in your `TOOLS.md`.
@@ -112,14 +123,24 @@ Install the required Python packages:
 
 ```bash
 uv pip install --python .venv/bin/python -r requirements.txt
-uv pip install --python .venv/bin/python torchcodec
 ```
-
-`torchcodec` is required for the current SpeechBrain audio-loading path.
 
 ---
 
-## 6. Prepare the local model assets
+## 6. System dependency: ffmpeg
+
+VoiceTrust may use local `ffmpeg` as a fallback decoder for formats that `soundfile` cannot read directly.
+Ensure `ffmpeg` is installed locally.
+
+On macOS/Homebrew:
+
+```bash
+brew install ffmpeg
+```
+
+---
+
+## 7. Prepare the local model assets
 
 The ClawHub package does **not** include the large SpeechBrain checkpoint files.
 Before enrollment or verification, run:
@@ -164,7 +185,7 @@ uv run --python .venv/bin/python ../scripts/ensure_models.py --force
 
 ---
 
-## 7. Verify that the runtime starts
+## 8. Verify that the runtime starts
 
 Run a basic speaker listing command:
 
@@ -176,7 +197,7 @@ If this is the first setup, it is normal to see that no enrolled speaker exists 
 
 ---
 
-## 8. Enroll the owner voiceprint
+## 9. Enroll the owner voiceprint
 
 Once the owner audio is ready, enroll it under a single `speaker_id`.
 
@@ -223,7 +244,7 @@ Do not publish it.
 
 ---
 
-## 9. Confirm enrollment state
+## 10. Confirm enrollment state
 
 After enrollment, confirm that the owner profile exists:
 
@@ -240,7 +261,7 @@ Owner profiles:
 
 ---
 
-## 10. Run a real verification test
+## 11. Run a real verification test
 
 Pick a voice sample that should match the enrolled owner and run:
 
@@ -270,7 +291,7 @@ At this stage, the important thing is that:
 
 ---
 
-## 11. Understand the current trust rule
+## 12. Understand the current trust rule
 
 Current mainline formula:
 
@@ -290,7 +311,7 @@ Practical downgrades:
 
 ---
 
-## 12. How to use VoiceTrust in normal operation
+## 13. How to use VoiceTrust in normal operation
 
 Once setup is complete, the normal pattern is simple:
 
