@@ -49,6 +49,14 @@ REQUIRED_FILES = [
     "mean_var_norm_emb.ckpt",
 ]
 
+EXPECTED_SHA256 = {
+    "hyperparams.yaml": "6f78854fa04ba59e761437b76a2575d3aba5e5016de3e9b69f0c9a5077fb1a41",
+    "classifier.ckpt": "fd9e3634fe68bd0a427c95e354c0c677374f62b3f434e45b78599950d860d535",
+    "embedding_model.ckpt": "0575cb64845e6b9a10db9bcb74d5ac32b326b8dc90352671d345e2ee3d0126a2",
+    "label_encoder.ckpt": "e13c3a167bb4112685670ee896d20e2b565af16b3a4ceeaa8689fa4d22adb8b9",
+    "mean_var_norm_emb.ckpt": "cd70225b05b37be64fc5a95e24395d804231d43f74b2e1e5a513db7b69b34c33",
+}
+
 
 def sha256_file(path: Path) -> str:
     h = hashlib.sha256()
@@ -62,10 +70,14 @@ def file_report() -> dict:
     report = {}
     for name in REQUIRED_FILES:
         path = MODEL_DIR / name
+        actual_sha256 = sha256_file(path) if path.exists() else None
+        expected_sha256 = EXPECTED_SHA256.get(name)
         report[name] = {
             "present": path.exists(),
             "size_bytes": path.stat().st_size if path.exists() else 0,
-            "sha256": sha256_file(path) if path.exists() else None,
+            "sha256": actual_sha256,
+            "expected_sha256": expected_sha256,
+            "verified": bool(path.exists() and actual_sha256 == expected_sha256),
             "path": str(path),
             "url": f"{RAW_BASE_URL}/{name}",
             "model_upstream": MODEL_UPSTREAM,
@@ -77,17 +89,35 @@ def missing_files() -> list[str]:
     return [name for name in REQUIRED_FILES if not (MODEL_DIR / name).exists()]
 
 
+def verify_file(name: str, path: Path) -> dict:
+    expected_sha256 = EXPECTED_SHA256[name]
+    actual_sha256 = sha256_file(path)
+    verified = actual_sha256 == expected_sha256
+    return {
+        "file": name,
+        "path": str(path),
+        "expected_sha256": expected_sha256,
+        "sha256": actual_sha256,
+        "verified": verified,
+        "error": None if verified else "sha256_mismatch",
+    }
+
+
 def download_file(name: str, force: bool = False) -> dict:
     target = MODEL_DIR / name
     url = f"{RAW_BASE_URL}/{name}"
     if target.exists() and not force:
+        verification = verify_file(name, target)
         return {
             "file": name,
-            "status": "skipped",
+            "status": "verified_existing" if verification["verified"] else "error",
             "path": str(target),
             "size_bytes": target.stat().st_size,
-            "sha256": sha256_file(target),
+            "sha256": verification["sha256"],
+            "expected_sha256": verification["expected_sha256"],
+            "verified": verification["verified"],
             "url": url,
+            **({"error": verification["error"]} if verification["error"] else {}),
         }
 
     tmp = target.with_suffix(target.suffix + ".part")
@@ -99,12 +129,28 @@ def download_file(name: str, force: bool = False) -> dict:
                     break
                 fh.write(chunk)
         tmp.replace(target)
+        verification = verify_file(name, target)
+        if not verification["verified"]:
+            target.unlink(missing_ok=True)
+            return {
+                "file": name,
+                "status": "error",
+                "path": str(target),
+                "size_bytes": 0,
+                "sha256": verification["sha256"],
+                "expected_sha256": verification["expected_sha256"],
+                "verified": False,
+                "url": url,
+                "error": verification["error"],
+            }
         return {
             "file": name,
             "status": "downloaded",
             "path": str(target),
             "size_bytes": target.stat().st_size,
-            "sha256": sha256_file(target),
+            "sha256": verification["sha256"],
+            "expected_sha256": verification["expected_sha256"],
+            "verified": True,
             "url": url,
         }
     except (HTTPError, URLError) as e:
@@ -129,8 +175,9 @@ def ensure_models(force: bool = False) -> dict:
             actions.append(download_file(name, force=force))
 
     after_missing = missing_files()
+    verification_errors = [a for a in actions if a.get("status") == "error"]
     return {
-        "ok": not after_missing,
+        "ok": not after_missing and not verification_errors,
         "model_dir": str(MODEL_DIR),
         "canonical_repository": CANONICAL_REPOSITORY,
         "model_upstream": MODEL_UPSTREAM,
@@ -139,6 +186,7 @@ def ensure_models(force: bool = False) -> dict:
         "missing_before": before_missing,
         "missing_after": after_missing,
         "actions": actions,
+        "verification_errors": verification_errors,
         "files": file_report(),
     }
 
@@ -153,7 +201,8 @@ def print_human_status(result: dict) -> int:
             print("Downloaded/checked files:")
             for action in result["actions"]:
                 status = action["status"]
-                print(f"  - {action['file']}: {status}")
+                suffix = " (sha256 verified)" if action.get("verified") else ""
+                print(f"  - {action['file']}: {status}{suffix}")
         return 0
 
     print("VoiceTrust model assets are incomplete.")
@@ -168,9 +217,12 @@ def print_human_status(result: dict) -> int:
     errors = [a for a in result["actions"] if a.get("status") == "error"]
     if errors:
         print()
-        print("Download errors:")
+        print("Download / verification errors:")
         for action in errors:
-            print(f"  - {action['file']}: {action['error']}")
+            detail = action["error"]
+            if action.get("expected_sha256"):
+                detail += f" (expected {action['expected_sha256']}, got {action.get('sha256')})"
+            print(f"  - {action['file']}: {detail}")
     return 2
 
 
@@ -184,15 +236,17 @@ def main() -> int:
     MODEL_DIR.mkdir(parents=True, exist_ok=True)
 
     if args.check_only:
+        report = file_report()
+        verified_ok = all(item["verified"] for item in report.values() if item["present"])
         result = {
-            "ok": not missing_files(),
+            "ok": not missing_files() and verified_ok,
             "model_dir": str(MODEL_DIR),
             "canonical_repository": CANONICAL_REPOSITORY,
             "model_upstream": MODEL_UPSTREAM,
             "model_mirror_note": MODEL_MIRROR_NOTE,
             "raw_base_url": RAW_BASE_URL,
             "missing": missing_files(),
-            "files": file_report(),
+            "files": report,
         }
         if args.json:
             print(json.dumps(result, indent=2))
@@ -203,7 +257,7 @@ def main() -> int:
             print(f"Model upstream: {result['model_upstream']}")
             print(result["model_mirror_note"])
             return 0
-        print("VoiceTrust model assets are missing.")
+        print("VoiceTrust model assets are missing or failed verification.")
         print(f"Model dir: {result['model_dir']}")
         print(f"Canonical repository: {result['canonical_repository']}")
         print(f"Model upstream: {result['model_upstream']}")
