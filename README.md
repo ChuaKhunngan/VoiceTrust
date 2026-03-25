@@ -15,8 +15,6 @@ It is designed to sit alongside whatever STT path OpenClaw is already using, and
 
 This makes it useful for voice workflows where messages are not just content, but also instructions, control input, or identity-sensitive actions.
 
-**Canonical repository:** <https://github.com/ChuaKhunngan/VoiceTrust>
-
 **Developed in collaboration with Jarvis, the OpenClaw-based AI partner behind this workflow, with additional support from [CodeLeader](https://github.com/ChuaKhunngan/CodeLeader).**
 
 ---
