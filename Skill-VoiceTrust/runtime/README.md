@@ -3,10 +3,10 @@
 Self-contained runtime for the `Skill-VoiceTrust` bundle.
 
 ## Included
-- local SpeechBrain ECAPA speaker-verification assets under `assets/models/`
 - runtime source under `src/`
 - runtime config under `configs/`
 - owner profile storage under `data/owners/`
+- local model asset directory under `assets/models/` (populated on demand by `../scripts/ensure_models.py`)
 
 ## Runtime note
 VoiceTrust no longer depends on `torchcodec` for its core audio-loading path.
@@ -32,6 +32,7 @@ uv run --python .venv/bin/python ../scripts/demo.py --list-speakers
 
 ## System dependency
 For the ffmpeg fallback path, ensure a local `ffmpeg` binary is available.
+VoiceTrust resolves ffmpeg via `FFMPEG_BIN`, then `PATH`, then `/opt/homebrew/bin/ffmpeg` as a macOS fallback.
 On macOS/Homebrew this is typically:
 
 ```bash

@@ -124,9 +124,27 @@ def _load_audio_with_soundfile(audio_path: str) -> Tuple[np.ndarray, int]:
     return data, sample_rate
 
 
+def _resolve_ffmpeg_binary() -> str:
+    ffmpeg_env = os.environ.get("FFMPEG_BIN")
+    if ffmpeg_env:
+        return ffmpeg_env
+
+    ffmpeg_on_path = shutil.which("ffmpeg")
+    if ffmpeg_on_path:
+        return ffmpeg_on_path
+
+    fallback = Path("/opt/homebrew/bin/ffmpeg")
+    if fallback.exists():
+        return str(fallback)
+
+    raise RuntimeError(
+        "ffmpeg not found. Install ffmpeg, add it to PATH, or set FFMPEG_BIN."
+    )
+
+
 def _load_audio_with_ffmpeg(audio_path: str, sample_rate: int) -> np.ndarray:
     cmd = [
-        "/opt/homebrew/bin/ffmpeg",
+        _resolve_ffmpeg_binary(),
         "-v",
         "error",
         "-i",

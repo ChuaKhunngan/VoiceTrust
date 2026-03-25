@@ -5,14 +5,22 @@ This script keeps the distributed skill bundle lightweight:
 - the ClawHub package contains code + setup logic
 - large SpeechBrain model checkpoints are downloaded on demand
 
+Trust and provenance notes:
+- this repository maintains the VoiceTrust code and packaging
+- the underlying ECAPA speaker-recognition model originates from the SpeechBrain project
+- the original upstream model page is https://huggingface.co/speechbrain/spkrec-ecapa-voxceleb
+- this downloader currently fetches the required runtime files from the VoiceTrust mirror path
+- owner enrollment data remains local runtime state and is never downloaded by this script
+
 Default behavior:
 - check whether required local model files exist
-- download missing files from the official GitHub raw directory
+- download missing files from the current VoiceTrust mirror path
 - report exact status in human or JSON form
 """
 from __future__ import annotations
 
 import argparse
+import hashlib
 import json
 import sys
 import urllib.request
@@ -22,6 +30,12 @@ from urllib.error import HTTPError, URLError
 PACKAGE_ROOT = Path(__file__).resolve().parent.parent
 RUNTIME_ROOT = PACKAGE_ROOT / "runtime"
 MODEL_DIR = RUNTIME_ROOT / "assets" / "models" / "ecapa_voxceleb"
+CANONICAL_REPOSITORY = "https://github.com/ChuaKhunngan/VoiceTrust"
+MODEL_UPSTREAM = "https://huggingface.co/speechbrain/spkrec-ecapa-voxceleb"
+MODEL_MIRROR_NOTE = (
+    "The current downloader uses the VoiceTrust mirror path for runtime convenience; "
+    "the underlying model originates from the upstream SpeechBrain release above."
+)
 RAW_BASE_URL = (
     "https://raw.githubusercontent.com/ChuaKhunngan/VoiceTrust/main/"
     "assets/models/ecapa_voxceleb"
@@ -36,6 +50,14 @@ REQUIRED_FILES = [
 ]
 
 
+def sha256_file(path: Path) -> str:
+    h = hashlib.sha256()
+    with path.open("rb") as fh:
+        for chunk in iter(lambda: fh.read(1024 * 1024), b""):
+            h.update(chunk)
+    return h.hexdigest()
+
+
 def file_report() -> dict:
     report = {}
     for name in REQUIRED_FILES:
@@ -43,8 +65,10 @@ def file_report() -> dict:
         report[name] = {
             "present": path.exists(),
             "size_bytes": path.stat().st_size if path.exists() else 0,
+            "sha256": sha256_file(path) if path.exists() else None,
             "path": str(path),
             "url": f"{RAW_BASE_URL}/{name}",
+            "model_upstream": MODEL_UPSTREAM,
         }
     return report
 
@@ -62,6 +86,7 @@ def download_file(name: str, force: bool = False) -> dict:
             "status": "skipped",
             "path": str(target),
             "size_bytes": target.stat().st_size,
+            "sha256": sha256_file(target),
             "url": url,
         }
 
@@ -79,6 +104,7 @@ def download_file(name: str, force: bool = False) -> dict:
             "status": "downloaded",
             "path": str(target),
             "size_bytes": target.stat().st_size,
+            "sha256": sha256_file(target),
             "url": url,
         }
     except (HTTPError, URLError) as e:
@@ -106,6 +132,9 @@ def ensure_models(force: bool = False) -> dict:
     return {
         "ok": not after_missing,
         "model_dir": str(MODEL_DIR),
+        "canonical_repository": CANONICAL_REPOSITORY,
+        "model_upstream": MODEL_UPSTREAM,
+        "model_mirror_note": MODEL_MIRROR_NOTE,
         "raw_base_url": RAW_BASE_URL,
         "missing_before": before_missing,
         "missing_after": after_missing,
@@ -117,6 +146,9 @@ def ensure_models(force: bool = False) -> dict:
 def print_human_status(result: dict) -> int:
     if result["ok"]:
         print(f"VoiceTrust model assets ready: {result['model_dir']}")
+        print(f"Canonical repository: {result['canonical_repository']}")
+        print(f"Model upstream: {result['model_upstream']}")
+        print(result["model_mirror_note"])
         if result["actions"]:
             print("Downloaded/checked files:")
             for action in result["actions"]:
@@ -126,6 +158,9 @@ def print_human_status(result: dict) -> int:
 
     print("VoiceTrust model assets are incomplete.")
     print(f"Model dir: {result['model_dir']}")
+    print(f"Canonical repository: {result['canonical_repository']}")
+    print(f"Model upstream: {result['model_upstream']}")
+    print(result["model_mirror_note"])
     print(f"Source: {result['raw_base_url']}")
     print("Missing files after ensure:")
     for name in result["missing_after"]:
@@ -152,6 +187,9 @@ def main() -> int:
         result = {
             "ok": not missing_files(),
             "model_dir": str(MODEL_DIR),
+            "canonical_repository": CANONICAL_REPOSITORY,
+            "model_upstream": MODEL_UPSTREAM,
+            "model_mirror_note": MODEL_MIRROR_NOTE,
             "raw_base_url": RAW_BASE_URL,
             "missing": missing_files(),
             "files": file_report(),
@@ -161,9 +199,15 @@ def main() -> int:
             return 0 if result["ok"] else 2
         if result["ok"]:
             print(f"VoiceTrust model assets ready: {result['model_dir']}")
+            print(f"Canonical repository: {result['canonical_repository']}")
+            print(f"Model upstream: {result['model_upstream']}")
+            print(result["model_mirror_note"])
             return 0
         print("VoiceTrust model assets are missing.")
         print(f"Model dir: {result['model_dir']}")
+        print(f"Canonical repository: {result['canonical_repository']}")
+        print(f"Model upstream: {result['model_upstream']}")
+        print(result["model_mirror_note"])
         for name in result["missing"]:
             print(f"  - {name}")
         return 2

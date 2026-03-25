@@ -15,6 +15,8 @@ It is designed to sit alongside whatever STT path OpenClaw is already using, and
 
 This makes it useful for voice workflows where messages are not just content, but also instructions, control input, or identity-sensitive actions.
 
+**Canonical repository:** <https://github.com/ChuaKhunngan/VoiceTrust>
+
 **Developed in collaboration with Jarvis, the OpenClaw-based AI partner behind this workflow, with additional support from [CodeLeader](https://github.com/ChuaKhunngan/CodeLeader).**
 
 ---
@@ -170,9 +172,11 @@ uv pip install --python .venv/bin/python -r requirements.txt
 uv run --python .venv/bin/python Skill-VoiceTrust/scripts/ensure_models.py
 ```
 
+The downloader pulls required public model files from the canonical VoiceTrust repository and reports source URLs, file sizes, and SHA256 values for local verification.
+
 ### 3. Ensure ffmpeg is available
 
-VoiceTrust may use local `ffmpeg` as a fallback decoder when direct audio decode is unavailable.
+VoiceTrust may use local `ffmpeg` as a fallback decoder when direct audio decode is unavailable. It resolves ffmpeg via `FFMPEG_BIN`, then `PATH`, then `/opt/homebrew/bin/ffmpeg` as a macOS fallback.
 
 On macOS/Homebrew:
 

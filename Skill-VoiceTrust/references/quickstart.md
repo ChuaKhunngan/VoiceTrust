@@ -30,6 +30,7 @@ The actual VoiceTrust runtime lives under `runtime/`.
 The package intentionally stays lightweight:
 - source code and setup docs are included
 - large SpeechBrain checkpoint files are not bundled
+- model assets are fetched on demand from the canonical VoiceTrust repository when needed
 - owner enrollment data is local-only and should never be distributed
 
 ---
@@ -176,6 +177,11 @@ After installation, confirm it is available:
 ffmpeg -version
 ```
 
+VoiceTrust resolves ffmpeg in this order:
+1. `FFMPEG_BIN` environment variable
+2. `ffmpeg` on `PATH`
+3. `/opt/homebrew/bin/ffmpeg` fallback on Homebrew macOS
+
 ---
 
 ## 7. Prepare the local model assets
@@ -198,6 +204,8 @@ Required files:
 - `embedding_model.ckpt`
 - `label_encoder.ckpt`
 - `mean_var_norm_emb.ckpt`
+
+The downloader reports the canonical repository, source URLs, file sizes, and SHA256 values for local verification.
 
 ---
 
