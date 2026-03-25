@@ -286,4 +286,39 @@ When redistributing this project or its packaged skill bundle, keep:
 
 MIT
 
+---
+
+## Local biometric data and privacy
+
+VoiceTrust performs local owner verification and may create local enrollment artifacts for the enrolled speaker.
+
+What may be stored locally:
+- owner enrollment audio samples provided by the operator
+- derived local owner profiles / voiceprint artifacts used for speaker verification
+
+Typical local paths:
+- `runtime/data/owners/`
+- `runtime/data/voiceprints/`
+
+What VoiceTrust does not do:
+- it does not upload owner enrollment data to the VoiceTrust repository
+- it does not send biometric enrollment data to a remote verification service
+- it does not require biometric enrollment data for installation
+- `scripts/ensure_models.py` only prepares public model assets and does not upload or collect owner enrollment data
+
+Operator guidance:
+- treat these directories as sensitive local biometric data
+- do not publish, share, or casually sync them to other systems
+- protect them with appropriate local filesystem permissions
+- review backup and sync destinations if your machine automatically copies local folders to cloud storage
+
+Removal:
+- delete the relevant speaker data under `runtime/data/owners/` and `runtime/data/voiceprints/` to remove local enrollment artifacts
+- after deletion, that speaker must be enrolled again before verification can resume
+
+Privacy design summary:
+- local-only
+- user-initiated
+- not required for installation
+- removable by deleting local enrollment artifacts
 
